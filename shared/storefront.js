@@ -414,14 +414,15 @@ function renderCartPage() {
 }
 
 function configurationFor(form) {
-  const selects = [...(form?.querySelectorAll("[data-product-option]") || [])];
+  const controls = [...(form?.querySelectorAll("[data-product-option]") || [])]
+    .filter((control) => control.type !== "radio" || control.checked);
   const engraving = form?.querySelector("[data-preview-engraving-input]:not([disabled])")?.value.trim();
   const option = [
-    ...selects.map((select) => `${select.dataset.optionName}: ${select.value}`),
+    ...controls.map((control) => `${control.dataset.optionName}: ${control.value}`),
     engraving ? `Engraving text: ${engraving}` : ""
   ].filter(Boolean).join(" / ");
-  const modifier = selects.reduce((total, select) => {
-    const selected = select.options[select.selectedIndex];
+  const modifier = controls.reduce((total, control) => {
+    const selected = control.tagName === "SELECT" ? control.options[control.selectedIndex] : control;
     return total + Number(selected?.dataset.priceModifier || 0);
   }, 0);
   return { option, modifier };

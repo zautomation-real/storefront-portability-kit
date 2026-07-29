@@ -9,25 +9,9 @@ body[data-platform="shopify"] #shopify-section-site-header .site-header{position
 .main-product__content h1{max-width:10ch;margin:0;font-family:var(--font-display);font-size:clamp(3.5rem,6vw,7rem);font-weight:600;letter-spacing:-.065em;line-height:.88}
 .main-product__price{display:flex;align-items:baseline;gap:.5rem;margin:1.5rem 0 0;font-size:1.2rem;font-weight:700}
 .main-product__price s{font-size:.95rem;font-weight:400;opacity:.5}
-.main-product__content>.rte{max-width:36rem;margin-top:1.5rem;color:color-mix(in srgb,var(--ink) 78%,transparent);font-size:1.02rem}
 .main-product__form{display:grid;gap:1.15rem;max-width:38rem;margin-top:2rem}
-.product-options{display:grid;gap:1.35rem}
-.product-options[hidden],.product-property[hidden]{display:none!important}
-.product-option{min-width:0;margin:0;padding:0;border:0}
-.product-option legend,.main-product__form>label,.product-property label{display:block;margin-bottom:.55rem;font-size:.72rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
-.product-option__values{display:flex;flex-wrap:wrap;gap:.55rem}
-.product-option__input{position:absolute;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:none}
-.product-option__label{display:inline-flex;min-height:2.9rem;align-items:center;justify-content:center;padding:.65rem 1rem;border:1px solid var(--line);background:var(--paper);cursor:pointer;font-size:.86rem;font-weight:700;transition:border-color .18s ease,background .18s ease,color .18s ease,transform .18s ease}
-.product-option__label:hover{border-color:var(--ink);transform:translateY(-1px)}
-.product-option__input:checked+.product-option__label{border-color:var(--ink);background:var(--ink);color:var(--paper)}
-.product-option__input:focus-visible+.product-option__label{outline:3px solid var(--accent);outline-offset:3px}
-.product-option__input:disabled+.product-option__label{cursor:not-allowed;opacity:.4;text-decoration:line-through;transform:none}
-.product-property{display:grid;gap:.45rem;padding:1rem;border:1px solid var(--line);background:var(--soft)}
-.product-property label{margin:0}
-.product-property input,.main-product select{max-width:100%;min-height:3.15rem;padding:.7rem .8rem;border:1px solid var(--line);border-radius:0;background:var(--paper);color:var(--ink)}
+.main-product select{max-width:100%;min-height:3.15rem;padding:.7rem .8rem;border:1px solid var(--line);border-radius:0;background:var(--paper);color:var(--ink)}
 .main-product select{width:100%}
-.product-property input{width:100%}
-.product-property small{font-size:.72rem;opacity:.68}
 .main-product__form>.button{margin-top:.25rem}
 .main-product__form>.button[aria-busy="true"]{cursor:progress}
 .product-form__status{margin:0;padding:.8rem 1rem;border-left:3px solid var(--accent);background:var(--soft);font-size:.84rem;font-weight:700}
@@ -128,11 +112,5 @@ body[data-layout="technical"] .password-page__content h1{text-transform:uppercas
 }
 
 @media(max-width:480px){
-  .product-option__values{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
-  .product-option__label{width:100%;padding-inline:.7rem;text-align:center}
   .password-form__controls{grid-template-columns:1fr}
-}
-
-@media(max-width:420px){
-  .product-option__values{grid-template-columns:1fr}
 }

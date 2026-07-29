@@ -255,14 +255,28 @@ test("Shopify password composition carries brand media without hard-coded fixtur
 test("static product preview exposes every product option and dynamic pricing hooks", () => {
   const html = renderProductPreview(brand, product);
   assert.match(html, /data-layout="standard"/);
-  assert.equal((html.match(/data-product-option data-option-name/g) || []).length, 2);
+  assert.equal((html.match(/data-product-option-group/g) || []).length, 2);
+  assert.equal((html.match(/data-product-option data-option-name/g) || []).length, 4);
+  assert.equal((html.match(/data-price-modifier="[^"]+" checked/g) || []).length, 2);
+  assert.match(html, /class="product-option__input" type="radio"/);
+  assert.match(html, /class="product-option__label"/);
+  assert.doesNotMatch(html, /<select[^>]+data-product-option/);
   assert.match(html, /data-price-modifier="1500"/);
   assert.match(html, /data-base-compare="12000"/);
   assert.match(html, /data-preview-variant-media/);
+  assert.match(html, /const selectedOptions=/);
+  assert.match(html, /input\.type!=="radio"\|\|input\.checked/);
   assert.match(html, /product-dark-installed\.webp/);
   assert.match(html, /<img[^>]+data-preview-product-image>/);
   assert.doesNotMatch(html, /data-preview-product-alternate-image/);
   assert.doesNotMatch(html, /product-media-gallery/);
+});
+
+test("static product configuration reads only the selected radio from each option group", async () => {
+  const runtime = await readFile(new URL("../shared/storefront.js", import.meta.url), "utf8");
+
+  assert.match(runtime, /control\.type !== "radio" \|\| control\.checked/);
+  assert.match(runtime, /control\.tagName === "SELECT" \? control\.options\[control\.selectedIndex\] : control/);
 });
 
 test("static product preview only requests engraving text for active engraving options", () => {
@@ -346,7 +360,10 @@ test("responsive content reserves space for long headings, testimonials and cont
   assert.match(shared, /@media \(max-width:800px\)\{\.testimonial-grid\{grid-template-columns:1fr\}/);
   assert.match(shared, /@media \(max-height:700px\)\{\.section-heading--sticky\{position:static\}/);
   assert.match(shared, /body\[data-layout="technical"\] \.menu-button,[^}]*text-transform:uppercase/);
-  assert.match(shopify, /@media\(max-width:420px\)\{[\s\S]*?\.product-option__values\{grid-template-columns:1fr\}/);
+  assert.match(shared, /@media \(max-width:420px\)\{[\s\S]*?\.product-option__values\{grid-template-columns:1fr\}/);
+  assert.match(shared, /\.product-description\{[^}]*max-width:36rem[^}]*color:color-mix/);
+  assert.match(shared, /\.product-option__input:checked\+\.product-option__label/);
+  assert.doesNotMatch(shopify, /\.product-option__input:checked\+\.product-option__label/);
 });
 
 test("Shopify product pages resolve native variants and preserve line-item properties", async () => {
