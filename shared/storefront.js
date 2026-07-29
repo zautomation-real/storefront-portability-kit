@@ -115,9 +115,11 @@ function renderCartPage() {
 
 function configurationFor(form) {
   const selects = [...(form?.querySelectorAll("[data-product-option]") || [])];
-  const option = selects
-    .map((select) => `${select.dataset.optionName}: ${select.value}`)
-    .join(" / ");
+  const engraving = form?.querySelector("[data-preview-engraving-input]:not([disabled])")?.value.trim();
+  const option = [
+    ...selects.map((select) => `${select.dataset.optionName}: ${select.value}`),
+    engraving ? `Engraving text: ${engraving}` : ""
+  ].filter(Boolean).join(" / ");
   const modifier = selects.reduce((total, select) => {
     const selected = select.options[select.selectedIndex];
     return total + Number(selected?.dataset.priceModifier || 0);

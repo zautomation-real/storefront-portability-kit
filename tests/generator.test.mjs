@@ -214,6 +214,36 @@ test("static product preview exposes every product option and dynamic pricing ho
   assert.match(html, /product-dark-installed\.webp/);
 });
 
+test("static product preview only requests engraving text for active engraving options", () => {
+  const html = renderProductPreview(brand, {
+    ...product,
+    options: [
+      ...product.options,
+      { name: "Engraving", values: ["No engraving", "Up to 12 characters", "Up to 18 characters"] }
+    ]
+  });
+
+  assert.match(html, /data-preview-engraving hidden/);
+  assert.match(html, /<textarea[^>]+name="Engraving"[^>]+maxlength="18"[^>]+data-preview-engraving-input disabled>/);
+  assert.match(html, /Maximum <span data-preview-engraving-limit>18<\/span> characters\./);
+  assert.match(html, /normalized!=="none"/);
+  assert.match(html, /!normalized\.includes\("no engraving"\)/);
+  assert.match(html, /!normalized\.includes\("without engraving"\)/);
+  assert.match(html, /engravingProperty\.hidden=!required/);
+  assert.match(html, /engravingInput\.disabled=!required/);
+  assert.match(html, /engravingInput\.required=required/);
+  assert.match(html, /if\(!required\)engravingInput\.value=""/);
+  assert.match(html, /value\.match\(\/\\d\+\//);
+  assert.match(html, /Number\(statedLimit\)\|\|18/);
+});
+
+test("static product preview omits engraving controls when the product has no engraving option", () => {
+  const html = renderProductPreview(brand, product);
+
+  assert.doesNotMatch(html, /data-preview-engraving hidden/);
+  assert.doesNotMatch(html, /<textarea[^>]+data-preview-engraving-input/);
+});
+
 test("generated footers preserve real destinations across nested and Shopify pages", () => {
   const html = renderProductPreview(brand, product);
   assert.match(html, /href="\.\.\/\.\.\/index\.html#shop">Shop<\/a>/);
