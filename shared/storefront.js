@@ -11,11 +11,265 @@ let nativeCartQueue = Promise.resolve();
 let nativeCartMutationActive = false;
 let pendingCartRemoval = null;
 let productQuantityControlIndex = 0;
+const productZoomFinePointer = window.matchMedia("(hover: hover) and (pointer: fine)");
+const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+const productZooms = new Set();
+const productZoomStates = new WeakMap();
+const relatedCarousels = new Set();
+const relatedCarouselStates = new WeakMap();
 
 const getMenuButton = () => document.querySelector("[data-menu-toggle]");
 const getNav = () => document.querySelector("#primary-nav");
 const getCart = () => document.querySelector("#cart-drawer");
 const getScrim = () => document.querySelector("[data-scrim]");
+
+function clamp(value, minimum, maximum) {
+  return Math.min(maximum, Math.max(minimum, value));
+}
+
+function zoomState(root) {
+  if (!productZoomStates.has(root)) {
+    productZoomStates.set(root, {
+      pointerId: null,
+      startX: 0,
+      startY: 0,
+      startOriginX: 50,
+      startOriginY: 50,
+      dragged: false,
+      suppressClick: false
+    });
+  }
+  return productZoomStates.get(root);
+}
+
+function productZoomOrigin(root) {
+  return {
+    x: Number(root.dataset.zoomX || 50),
+    y: Number(root.dataset.zoomY || 50)
+  };
+}
+
+function setProductZoomOrigin(root, x, y) {
+  const nextX = clamp(Number(x) || 0, 0, 100);
+  const nextY = clamp(Number(y) || 0, 0, 100);
+  root.dataset.zoomX = String(nextX);
+  root.dataset.zoomY = String(nextY);
+  root.style.setProperty("--zoom-x", `${nextX}%`);
+  root.style.setProperty("--zoom-y", `${nextY}%`);
+}
+
+function setProductZoomOriginFromPointer(root, event) {
+  const bounds = root.getBoundingClientRect();
+  if (!bounds.width || !bounds.height) return;
+  setProductZoomOrigin(
+    root,
+    ((event.clientX - bounds.left) / bounds.width) * 100,
+    ((event.clientY - bounds.top) / bounds.height) * 100
+  );
+}
+
+function setProductZoomPinned(root, pinned) {
+  root.setAttribute("aria-pressed", String(pinned));
+  root.setAttribute("aria-label", pinned ? root.dataset.unzoomLabel : root.dataset.zoomLabel);
+  if (!pinned) root.removeAttribute("data-zoom-dragging");
+}
+
+function resetProductZoom(root) {
+  const state = zoomState(root);
+  if (state.pointerId !== null && root.hasPointerCapture?.(state.pointerId)) root.releasePointerCapture(state.pointerId);
+  state.pointerId = null;
+  state.dragged = false;
+  state.suppressClick = false;
+  setProductZoomOrigin(root, 50, 50);
+  setProductZoomPinned(root, false);
+}
+
+function resetAllProductZooms() {
+  productZooms.forEach(resetProductZoom);
+}
+
+function toggleProductZoom(root, event) {
+  const pinned = root.getAttribute("aria-pressed") !== "true";
+  if (pinned && Number.isFinite(event?.clientX) && Number.isFinite(event?.clientY) && (event.clientX || event.clientY)) {
+    setProductZoomOriginFromPointer(root, event);
+  }
+  setProductZoomPinned(root, pinned);
+  if (!pinned) setProductZoomOrigin(root, 50, 50);
+}
+
+function initProductZoom(root) {
+  if (productZooms.has(root)) return;
+  productZooms.add(root);
+  const state = zoomState(root);
+  const image = root.querySelector("img");
+  if (image) {
+    image.draggable = false;
+    new MutationObserver(() => resetProductZoom(root)).observe(image, { attributes: true, attributeFilter: ["src", "srcset"] });
+  }
+
+  root.addEventListener("pointermove", (event) => {
+    const pinned = root.getAttribute("aria-pressed") === "true";
+    if (!pinned && productZoomFinePointer.matches && event.pointerType === "mouse") {
+      setProductZoomOriginFromPointer(root, event);
+      return;
+    }
+    if (!pinned || state.pointerId !== event.pointerId) return;
+    const deltaX = event.clientX - state.startX;
+    const deltaY = event.clientY - state.startY;
+    if (!state.dragged && Math.hypot(deltaX, deltaY) >= 5) {
+      state.dragged = true;
+      root.dataset.zoomDragging = "true";
+    }
+    if (!state.dragged) return;
+    event.preventDefault();
+    const bounds = root.getBoundingClientRect();
+    const scale = Math.max(1.01, Number.parseFloat(getComputedStyle(root).getPropertyValue("--product-zoom-scale")) || 1.85);
+    setProductZoomOrigin(
+      root,
+      state.startOriginX - (deltaX / bounds.width) * (100 / (scale - 1)),
+      state.startOriginY - (deltaY / bounds.height) * (100 / (scale - 1))
+    );
+  });
+
+  root.addEventListener("pointerleave", () => {
+    if (root.getAttribute("aria-pressed") !== "true") setProductZoomOrigin(root, 50, 50);
+  });
+
+  root.addEventListener("pointerdown", (event) => {
+    if (root.getAttribute("aria-pressed") !== "true" || event.button !== 0) return;
+    const origin = productZoomOrigin(root);
+    state.pointerId = event.pointerId;
+    state.startX = event.clientX;
+    state.startY = event.clientY;
+    state.startOriginX = origin.x;
+    state.startOriginY = origin.y;
+    state.dragged = false;
+    root.setPointerCapture?.(event.pointerId);
+  });
+
+  const finishPointer = (event) => {
+    if (state.pointerId !== event.pointerId) return;
+    if (state.dragged) state.suppressClick = true;
+    if (root.hasPointerCapture?.(event.pointerId)) root.releasePointerCapture(event.pointerId);
+    state.pointerId = null;
+    state.dragged = false;
+    root.removeAttribute("data-zoom-dragging");
+    if (state.suppressClick) setTimeout(() => { state.suppressClick = false; }, 0);
+  };
+  root.addEventListener("pointerup", finishPointer);
+  root.addEventListener("pointercancel", finishPointer);
+
+  root.addEventListener("click", (event) => {
+    if (state.suppressClick) {
+      event.preventDefault();
+      state.suppressClick = false;
+      return;
+    }
+    event.preventDefault();
+    root.focus({ preventScroll: true });
+    toggleProductZoom(root, event);
+  });
+
+  root.addEventListener("keydown", (event) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      toggleProductZoom(root);
+      return;
+    }
+    if (event.key === "Escape") {
+      event.preventDefault();
+      resetProductZoom(root);
+      return;
+    }
+    if (root.getAttribute("aria-pressed") !== "true" || !["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key)) return;
+    event.preventDefault();
+    const origin = productZoomOrigin(root);
+    setProductZoomOrigin(
+      root,
+      origin.x + (event.key === "ArrowRight" ? 6 : event.key === "ArrowLeft" ? -6 : 0),
+      origin.y + (event.key === "ArrowDown" ? 6 : event.key === "ArrowUp" ? -6 : 0)
+    );
+  });
+}
+
+function updateRelatedCarousel(track) {
+  const controls = track.closest(".related-products")?.querySelector("[data-related-carousel-controls]");
+  const previous = controls?.querySelector("[data-related-carousel-previous]");
+  const next = controls?.querySelector("[data-related-carousel-next]");
+  const maximum = Math.max(0, track.scrollWidth - track.clientWidth);
+  const overflows = maximum > 2;
+  if (controls) controls.hidden = !overflows;
+  if (previous) previous.disabled = !overflows || track.scrollLeft <= 2;
+  if (next) next.disabled = !overflows || track.scrollLeft >= maximum - 2;
+}
+
+function scrollRelatedCarousel(track, direction) {
+  track.scrollBy({ left: direction * Math.max(280, track.clientWidth * .82), behavior: prefersReducedMotion.matches ? "auto" : "smooth" });
+}
+
+function initRelatedCarousel(track) {
+  if (relatedCarousels.has(track)) return;
+  relatedCarousels.add(track);
+  const state = { pointerId: null, startX: 0, startScroll: 0, dragged: false, suppressClick: false, frame: 0 };
+  relatedCarouselStates.set(track, state);
+  const controls = track.closest(".related-products")?.querySelector("[data-related-carousel-controls]");
+  controls?.querySelector("[data-related-carousel-previous]")?.addEventListener("click", () => scrollRelatedCarousel(track, -1));
+  controls?.querySelector("[data-related-carousel-next]")?.addEventListener("click", () => scrollRelatedCarousel(track, 1));
+
+  track.addEventListener("pointerdown", (event) => {
+    if (event.pointerType !== "mouse" || event.button !== 0 || track.scrollWidth <= track.clientWidth + 2) return;
+    state.pointerId = event.pointerId;
+    state.startX = event.clientX;
+    state.startScroll = track.scrollLeft;
+    state.dragged = false;
+    track.setPointerCapture?.(event.pointerId);
+  });
+  track.addEventListener("pointermove", (event) => {
+    if (state.pointerId !== event.pointerId) return;
+    const delta = event.clientX - state.startX;
+    if (!state.dragged && Math.abs(delta) >= 5) {
+      state.dragged = true;
+      track.dataset.carouselDragging = "true";
+    }
+    if (!state.dragged) return;
+    event.preventDefault();
+    track.scrollLeft = state.startScroll - delta;
+  });
+  const finishPointer = (event) => {
+    if (state.pointerId !== event.pointerId) return;
+    if (state.dragged) state.suppressClick = true;
+    if (track.hasPointerCapture?.(event.pointerId)) track.releasePointerCapture(event.pointerId);
+    state.pointerId = null;
+    state.dragged = false;
+    track.removeAttribute("data-carousel-dragging");
+    if (state.suppressClick) setTimeout(() => { state.suppressClick = false; }, 0);
+  };
+  track.addEventListener("pointerup", finishPointer);
+  track.addEventListener("pointercancel", finishPointer);
+  track.addEventListener("click", (event) => {
+    if (!state.suppressClick) return;
+    event.preventDefault();
+    event.stopPropagation();
+    state.suppressClick = false;
+  }, true);
+  track.addEventListener("dragstart", (event) => event.preventDefault());
+  track.addEventListener("keydown", (event) => {
+    if (event.target !== track || !["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+    event.preventDefault();
+    const behavior = prefersReducedMotion.matches ? "auto" : "smooth";
+    if (event.key === "Home") track.scrollTo({ left: 0, behavior });
+    else if (event.key === "End") track.scrollTo({ left: track.scrollWidth, behavior });
+    else scrollRelatedCarousel(track, event.key === "ArrowRight" ? 1 : -1);
+  });
+  track.addEventListener("scroll", () => {
+    if (state.frame) return;
+    state.frame = requestAnimationFrame(() => {
+      state.frame = 0;
+      updateRelatedCarousel(track);
+    });
+  }, { passive: true });
+  updateRelatedCarousel(track);
+}
 
 function escapeMarkup(value = "") {
   return String(value)
@@ -75,6 +329,7 @@ function setCart(open, { restoreFocus = true, preserveContext = false, focusLine
   const cart = getCart();
   const scrim = getScrim();
   if (!cart || !scrim) return;
+  if (open) resetAllProductZooms();
   cart.setAttribute("aria-hidden", String(!open));
   body.classList.toggle("drawer-open", open);
   scrim.hidden = !open;
@@ -760,6 +1015,13 @@ window.matchMedia("(min-width: 901px)").addEventListener("change", (event) => {
 });
 
 document.querySelectorAll("[data-product-quantity]").forEach((control) => syncProductQuantity(control));
+document.querySelectorAll("[data-product-zoom]").forEach(initProductZoom);
+document.querySelectorAll("[data-related-carousel]").forEach(initRelatedCarousel);
+
+window.addEventListener("resize", () => {
+  resetAllProductZooms();
+  relatedCarousels.forEach(updateRelatedCarousel);
+});
 
 if (isNativeStorefront) refreshCartCount().catch(() => {});
 else renderCart();

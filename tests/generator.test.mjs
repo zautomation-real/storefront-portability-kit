@@ -398,6 +398,52 @@ test("product pages show the rest of the catalogue without repeating the current
   assert.match(section, /collections\.all\.products/);
   assert.match(section, /render 'product-card', product: related_product/);
   assert.match(section, /product-grid--related/);
+  for (const markup of [related, section]) {
+    assert.match(markup, /data-related-carousel/);
+    assert.match(markup, /data-related-carousel-previous/);
+    assert.match(markup, /data-related-carousel-next/);
+    assert.match(markup, /aria-controls=/);
+  }
+});
+
+test("product imagery uses a shared accessible zoom contract without replacing WooCommerce zoom", async () => {
+  const [template, runtime, stylesheet] = await Promise.all([
+    readFile(new URL("../adapters/shopify/sections/main-product.liquid", import.meta.url), "utf8"),
+    readFile(new URL("../shared/storefront.js", import.meta.url), "utf8"),
+    readFile(new URL("../shared/storefront.css", import.meta.url), "utf8")
+  ]);
+  const preview = renderProductPreview(brand, product);
+
+  for (const markup of [template, preview]) {
+    assert.match(markup, /data-product-zoom/);
+    assert.match(markup, /role="button"/);
+    assert.match(markup, /aria-pressed="false"/);
+    assert.match(markup, /data-zoom-label=/);
+    assert.match(markup, /data-unzoom-label=/);
+  }
+
+  assert.match(runtime, /function initProductZoom/);
+  assert.match(runtime, /function resetProductZoom/);
+  assert.match(runtime, /MutationObserver/);
+  assert.match(runtime, /ArrowLeft/);
+  assert.match(stylesheet, /\.product-zoom\[aria-pressed="true"\] img\{transform:scale\(var\(--product-zoom-scale\)\)\}/);
+  assert.match(stylesheet, /\.media:not\(\.product-zoom\) img\{transform:none!important\}/);
+  assert.doesNotMatch(runtime, /woocommerce-product-gallery/);
+});
+
+test("related products become a draggable single-row rail at compact widths", async () => {
+  const [runtime, stylesheet] = await Promise.all([
+    readFile(new URL("../shared/storefront.js", import.meta.url), "utf8"),
+    readFile(new URL("../shared/storefront.css", import.meta.url), "utf8")
+  ]);
+
+  assert.match(runtime, /function initRelatedCarousel/);
+  assert.match(runtime, /function updateRelatedCarousel/);
+  assert.match(runtime, /setPointerCapture/);
+  assert.match(runtime, /scrollBy/);
+  assert.match(stylesheet, /\.product-grid--related[^}]+display:flex[^}]+overflow-x:auto/);
+  assert.match(stylesheet, /scroll-snap-type:x mandatory/);
+  assert.match(stylesheet, /\.product-grid--related \.product-card\{flex:0 0/);
 });
 
 test("Shopify keeps the section wrapper sticky instead of constraining the menu", async () => {

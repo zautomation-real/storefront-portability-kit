@@ -20,13 +20,18 @@
 {% endcapture %}
 
 {% if related_count > 0 %}
+  {% capture related_track_id %}RelatedTrack-{{ section.id }}{% endcapture %}
   <section class="section related-products" aria-labelledby="RelatedProducts-{{ section.id }}">
     <div class="section-heading">
       {% if section.settings.eyebrow != blank %}<p class="eyebrow">{{ section.settings.eyebrow | escape }}</p>{% endif %}
       <h2 id="RelatedProducts-{{ section.id }}">{{ section.settings.title | escape }}</h2>
       {% if section.settings.body != blank %}<p class="section-intro">{{ section.settings.body | escape }}</p>{% endif %}
     </div>
-    <div class="product-grid product-grid--related">{{ related_cards }}</div>
+    <div class="related-products__controls" data-related-carousel-controls>
+      <button type="button" data-related-carousel-previous aria-controls="{{ related_track_id }}" aria-label="Previous products"><span aria-hidden="true">&larr;</span></button>
+      <button type="button" data-related-carousel-next aria-controls="{{ related_track_id }}" aria-label="Next products"><span aria-hidden="true">&rarr;</span></button>
+    </div>
+    <div class="product-grid product-grid--related" id="{{ related_track_id }}" data-related-carousel tabindex="0" aria-label="More products from this collection">{{ related_cards }}</div>
   </section>
 {% endif %}
 

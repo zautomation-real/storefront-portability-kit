@@ -11,9 +11,18 @@
 %}
 
 <section class="main-product" id="MainProduct-{{ section.id }}">
-  <div class="media main-product__media">
+  <div
+    class="media main-product__media product-zoom"
+    data-product-zoom
+    tabindex="0"
+    role="button"
+    aria-pressed="false"
+    aria-label="Zoom image for {{ product.title | escape }}"
+    data-zoom-label="Zoom image for {{ product.title | escape }}"
+    data-unzoom-label="Exit image zoom for {{ product.title | escape }}"
+  >
     {% if selected_variant.featured_image %}
-      {{ selected_variant.featured_image | image_url: width: 1400 | image_tag: widths: '500,800,1100,1400', loading: 'eager', fetchpriority: 'high' }}
+      {{ selected_variant.featured_image | image_url: width: 2200 | image_tag: widths: '500,800,1100,1400,1800,2200', loading: 'eager', fetchpriority: 'high', draggable: 'false' }}
     {% else %}
       {% render 'fixture-product-image', product: product, variant: selected_variant, loading: 'eager' %}
     {% endif %}
@@ -182,7 +191,7 @@
     <script type="application/json" data-product-variants>
       [
         {% for variant in product.variants %}
-          {% capture variant_image_srcset %}{% if variant.featured_image %}{{ variant.featured_image | image_url: width: 500 }} 500w, {{ variant.featured_image | image_url: width: 800 }} 800w, {{ variant.featured_image | image_url: width: 1100 }} 1100w, {{ variant.featured_image | image_url: width: 1400 }} 1400w{% endif %}{% endcapture %}
+          {% capture variant_image_srcset %}{% if variant.featured_image %}{{ variant.featured_image | image_url: width: 500 }} 500w, {{ variant.featured_image | image_url: width: 800 }} 800w, {{ variant.featured_image | image_url: width: 1100 }} 1100w, {{ variant.featured_image | image_url: width: 1400 }} 1400w, {{ variant.featured_image | image_url: width: 1800 }} 1800w, {{ variant.featured_image | image_url: width: 2200 }} 2200w{% endif %}{% endcapture %}
           {
             "id": {{ variant.id | json }},
             "available": {{ variant.available | json }},
@@ -192,7 +201,7 @@
             "compare_at_price": {{ variant.compare_at_price | default: 0 | json }},
             "compare_at_price_formatted": {% if variant.compare_at_price > variant.price %}{{ variant.compare_at_price | money | json }}{% else %}""{% endif %},
             "media": {% if variant.featured_image %}{
-              "src": {{ variant.featured_image | image_url: width: 1400 | json }},
+              "src": {{ variant.featured_image | image_url: width: 2200 | json }},
               "srcset": {{ variant_image_srcset | strip | json }},
               "alt": {{ variant.featured_image.alt | default: product.title | json }},
               "width": {{ variant.featured_image.width | json }},
