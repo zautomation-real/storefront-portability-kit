@@ -19,7 +19,7 @@
       <p>{{ section.settings.empty_text | escape }}</p>
     {% else %}
       {% for item in cart.items %}
-        <article class="cart-drawer__item">
+        <article class="cart-drawer__item" data-cart-line data-line-key="{{ item.key | escape }}">
           <a href="{{ item.url }}" aria-label="{{ item.product.title | escape }}">
             {% if item.variant.featured_image %}
               {% assign drawer_image_alt = item.variant.featured_image.alt | default: item.product.title %}
@@ -37,9 +37,19 @@
             {% endfor %}
             <br>{{ item.quantity }} × {{ item.final_price | money }}
           </p>
-          <a class="text-button" href="{{ item.url_to_remove }}" aria-label="Remove {{ item.product.title | escape }}">
-            {{ section.settings.remove_label | escape }}
-          </a>
+          <div class="cart-drawer__line-actions">
+            <div class="quantity-control" data-cart-quantity data-line-key="{{ item.key | escape }}" data-product-title="{{ item.product.title | escape }}">
+              <button class="quantity-control__button" type="button" data-quantity-decrease aria-label="{{ section.settings.decrease_label | escape }} {{ item.product.title | escape }}">&minus;</button>
+              <label class="quantity-control__label">
+                <span>{{ section.settings.quantity_label | escape }} {{ item.product.title | escape }}</span>
+                <input type="number" value="{{ item.quantity }}" min="0" step="1" inputmode="numeric" data-quantity-input data-cart-line-key="{{ item.key | escape }}" data-cart-quantity-current="{{ item.quantity }}" aria-label="{{ section.settings.quantity_label | escape }} {{ item.product.title | escape }}">
+              </label>
+              <button class="quantity-control__button" type="button" data-quantity-increase aria-label="{{ section.settings.increase_label | escape }} {{ item.product.title | escape }}">&plus;</button>
+            </div>
+            <a class="text-button" href="{{ item.url_to_remove }}" data-cart-remove data-line-key="{{ item.key | escape }}" data-product-title="{{ item.product.title | escape }}" aria-label="{{ section.settings.remove_label | escape }} {{ item.product.title | escape }}">
+              {{ section.settings.remove_label | escape }}
+            </a>
+          </div>
         </article>
       {% endfor %}
     {% endif %}
@@ -58,7 +68,18 @@
       </div>
     </div>
   {% endif %}
+  <p class="cart-status" data-cart-status role="status" aria-live="polite" hidden></p>
 </aside>
+<dialog class="cart-confirm" data-cart-confirm aria-labelledby="CartConfirmTitle" aria-describedby="CartConfirmBody">
+  <div class="cart-confirm__content">
+    <h2 id="CartConfirmTitle">{{ section.settings.confirm_title | escape }}</h2>
+    <p id="CartConfirmBody">{{ section.settings.confirm_body | escape }} <strong data-cart-confirm-name></strong></p>
+    <div class="actions">
+      <button class="button button--quiet" type="button" data-cart-confirm-cancel>{{ section.settings.confirm_cancel_label | escape }}</button>
+      <button class="button" type="button" data-cart-confirm-remove>{{ section.settings.confirm_remove_label | escape }}</button>
+    </div>
+  </div>
+</dialog>
 <div class="scrim" data-scrim hidden></div>
 
 {% schema %}
@@ -70,9 +91,16 @@
     { "type": "text", "id": "empty_text", "label": "Empty state", "default": "Your bag is waiting." },
     { "type": "text", "id": "continue_label", "label": "Continue shopping label", "default": "Continue shopping" },
     { "type": "text", "id": "remove_label", "label": "Remove label", "default": "Remove" },
+    { "type": "text", "id": "quantity_label", "label": "Quantity label", "default": "Quantity for" },
+    { "type": "text", "id": "decrease_label", "label": "Decrease quantity label", "default": "Decrease quantity for" },
+    { "type": "text", "id": "increase_label", "label": "Increase quantity label", "default": "Increase quantity for" },
     { "type": "text", "id": "subtotal_label", "label": "Subtotal label", "default": "Subtotal" },
     { "type": "text", "id": "review_label", "label": "Review bag label", "default": "Review bag" },
-    { "type": "text", "id": "checkout_label", "label": "Checkout label", "default": "Checkout" }
+    { "type": "text", "id": "checkout_label", "label": "Checkout label", "default": "Checkout" },
+    { "type": "text", "id": "confirm_title", "label": "Removal confirmation title", "default": "Remove this item?" },
+    { "type": "text", "id": "confirm_body", "label": "Removal confirmation text", "default": "This will remove it from your bag:" },
+    { "type": "text", "id": "confirm_cancel_label", "label": "Removal cancel label", "default": "Keep item" },
+    { "type": "text", "id": "confirm_remove_label", "label": "Removal confirm label", "default": "Remove" }
   ]
 }
 {% endschema %}

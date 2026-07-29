@@ -25,6 +25,7 @@ async function buildPreview() {
   }
   await writeText(path.join(output, "cart", "index.html"), renderCartPreview(brand));
   await copyIfPresent(path.join(root, "shared", "storefront.css"), path.join(output, "storefront.css"));
+  await copyIfPresent(path.join(root, "shared", "cart-controls.css"), path.join(output, "cart-controls.css"));
   await copyIfPresent(path.join(root, "shared", "storefront.js"), path.join(output, "storefront.js"));
   await copyDirectoryFlat(path.join(brandDir, "assets"), path.join(output, "assets"));
 }
@@ -46,6 +47,7 @@ async function buildAdapter(name, source = path.join(root, "adapters", name)) {
   await resetDir(output);
   await copyIfPresent(source, output);
   await copyIfPresent(path.join(root, "shared", "storefront.css"), path.join(output, "assets", "storefront.css"));
+  await copyIfPresent(path.join(root, "shared", "cart-controls.css"), path.join(output, "assets", "cart-controls.css"));
   await copyIfPresent(path.join(root, "shared", "storefront.js"), path.join(output, "assets", "storefront.js"));
   if (name === "shopify") {
     await copyDirectoryFlat(path.join(brandDir, "assets"), path.join(output, "assets"), "brand-");

@@ -1,4 +1,4 @@
-<section class="section cart-page">
+<section class="section cart-page" data-main-cart>
   <div class="section-heading"><p class="eyebrow">Shopping bag</p><h1>{{ section.settings.title | escape }}</h1></div>
   {% if cart.item_count == 0 %}
     <div class="empty-state empty-state--standalone">
@@ -9,7 +9,7 @@
     <form action="{{ routes.cart_url }}" method="post">
       <div class="cart-lines">
         {% for item in cart.items %}
-          <article class="cart-line">
+          <article class="cart-line" data-cart-line data-line-key="{{ item.key | escape }}">
             <a class="media cart-line__media" href="{{ item.url }}">
               {% if item.variant.featured_image %}
                 {% assign cart_image_alt = item.variant.featured_image.alt | default: item.product.title %}
@@ -26,12 +26,16 @@
                 {% assign property_first_character = property.first | slice: 0 %}
                 {% unless property.last == blank or property_first_character == '_' %}<p>{{ property.first | escape }}: {{ property.last | escape }}</p>{% endunless %}
               {% endfor %}
-              <a class="text-button" href="{{ item.url_to_remove }}" aria-label="Remove {{ item.product.title | escape }}">{{ section.settings.remove_label | escape }}</a>
+              <a class="text-button" href="{{ item.url_to_remove }}" data-cart-remove data-line-key="{{ item.key | escape }}" data-product-title="{{ item.product.title | escape }}" aria-label="{{ section.settings.remove_label | escape }} {{ item.product.title | escape }}">{{ section.settings.remove_label | escape }}</a>
             </div>
-            <label>
-              <span>{{ section.settings.quantity_label | escape }}</span>
-              <input type="number" name="updates[{{ item.key }}]" value="{{ item.quantity }}" min="0" inputmode="numeric">
-            </label>
+            <div class="quantity-control" data-cart-quantity data-line-key="{{ item.key | escape }}" data-product-title="{{ item.product.title | escape }}">
+              <button class="quantity-control__button" type="button" data-quantity-decrease aria-label="{{ section.settings.decrease_label | escape }} {{ item.product.title | escape }}">&minus;</button>
+              <label class="quantity-control__label">
+                <span>{{ section.settings.quantity_label | escape }} {{ item.product.title | escape }}</span>
+                <input type="number" name="updates[{{ item.key }}]" value="{{ item.quantity }}" min="0" step="1" inputmode="numeric" data-quantity-input data-cart-line-key="{{ item.key | escape }}" data-cart-quantity-current="{{ item.quantity }}" aria-label="{{ section.settings.quantity_label | escape }} {{ item.product.title | escape }}">
+              </label>
+              <button class="quantity-control__button" type="button" data-quantity-increase aria-label="{{ section.settings.increase_label | escape }} {{ item.product.title | escape }}">&plus;</button>
+            </div>
             <strong>{{ item.final_line_price | money }}</strong>
           </article>
         {% endfor %}
@@ -42,11 +46,12 @@
           <p>{{ section.settings.checkout_note | escape }}</p>
         </div>
         <a class="button button--quiet" href="{{ routes.root_url }}#shop">{{ section.settings.continue_label | escape }}</a>
-        <button class="button button--quiet" type="submit" name="update">{{ section.settings.update_label | escape }}</button>
         <button class="button" type="submit" name="checkout">{{ section.settings.checkout_label | escape }}</button>
       </div>
+      <noscript><button class="button button--quiet" type="submit" name="update">{{ section.settings.update_label | escape }}</button></noscript>
     </form>
   {% endif %}
+  <p class="cart-status" data-cart-status role="status" aria-live="polite" hidden></p>
 </section>
 {% schema %}
 {
@@ -56,7 +61,9 @@
     { "type": "text", "id": "empty_text", "label": "Empty state", "default": "Your bag is waiting." },
     { "type": "text", "id": "continue_label", "label": "Continue shopping label", "default": "Continue shopping" },
     { "type": "text", "id": "remove_label", "label": "Remove label", "default": "Remove" },
-    { "type": "text", "id": "quantity_label", "label": "Quantity label", "default": "Quantity" },
+    { "type": "text", "id": "quantity_label", "label": "Quantity label", "default": "Quantity for" },
+    { "type": "text", "id": "decrease_label", "label": "Decrease quantity label", "default": "Decrease quantity for" },
+    { "type": "text", "id": "increase_label", "label": "Increase quantity label", "default": "Increase quantity for" },
     { "type": "text", "id": "subtotal_label", "label": "Subtotal label", "default": "Subtotal" },
     { "type": "text", "id": "checkout_note", "label": "Checkout note", "default": "Taxes and shipping are calculated at checkout." },
     { "type": "text", "id": "update_label", "label": "Update label", "default": "Update bag" },

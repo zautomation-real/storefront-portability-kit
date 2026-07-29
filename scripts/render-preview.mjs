@@ -1,4 +1,4 @@
-import { escapeHtml, formatMoney, presentationLayout } from "./lib.mjs";
+import { escapeHtml, formatMoney, presentationLayout, productBodyHtml } from "./lib.mjs";
 import { productVariants } from "./platform-output.mjs";
 
 const action = (item, className = "button") =>
@@ -104,6 +104,7 @@ export function renderPreview(brand, catalog) {
   <title>${escapeHtml(brand.displayName)} — storefront demonstration</title>
   <style>${brandStyle}</style>
   <link rel="stylesheet" href="storefront.css">
+  <link rel="stylesheet" href="cart-controls.css">
   <script src="storefront.js" defer></script>
 </head>
 <body data-brand="${escapeHtml(brand.id)}" data-layout="${escapeHtml(layout)}" data-platform="preview" data-root="" data-locale="${escapeHtml(brand.locale)}" data-currency="${escapeHtml(brand.currency)}">
@@ -134,10 +135,11 @@ export function renderPreview(brand, catalog) {
     <p>${escapeHtml(brand.footer.note)}</p>
     <nav aria-label="Footer navigation">${footerLinks(brand.footer.links)}</nav>
   </footer>
-  <aside class="cart-drawer" id="cart-drawer" aria-hidden="true" aria-label="Shopping bag">
+  <aside class="cart-drawer" id="cart-drawer" aria-hidden="true" aria-label="Shopping bag" inert>
     <div class="cart-drawer__head"><h2>Your bag</h2><button type="button" data-cart-close aria-label="Close bag">Close</button></div>
     <div class="cart-drawer__items" data-cart-items><p>Your bag is waiting.</p></div>
     <a class="button button--full" href="cart/index.html">Review bag</a>
+    <p class="cart-status" data-cart-status role="status" aria-live="polite" hidden></p>
   </aside>
   <div class="scrim" data-scrim hidden></div>
 </body>
@@ -156,6 +158,7 @@ function nestedDocument(brand, { rootPath, title, description, content, bodyClas
   <title>${escapeHtml(title)} — ${escapeHtml(brand.displayName)}</title>
   <style>:root{--ink:${brand.palette.ink};--paper:${brand.palette.paper};--muted:${brand.palette.muted};--accent:${brand.palette.accent};--accent-contrast:${brand.palette.accentContrast};--line:${brand.palette.line};--surface:${brand.palette.surface};--soft:${brand.palette.soft};--font-display:${brand.typography.display};--font-body:${brand.typography.body};}</style>
   <link rel="stylesheet" href="${rootPath}storefront.css">
+  <link rel="stylesheet" href="${rootPath}cart-controls.css">
   <script src="${rootPath}storefront.js" defer></script>
 </head>
 <body class="${bodyClass}" data-brand="${escapeHtml(brand.id)}" data-layout="${escapeHtml(layout)}" data-platform="preview" data-root="${rootPath}" data-locale="${escapeHtml(brand.locale)}" data-currency="${escapeHtml(brand.currency)}">
@@ -169,7 +172,7 @@ function nestedDocument(brand, { rootPath, title, description, content, bodyClas
   </header>
   ${content}
   <footer class="site-footer"><a class="wordmark" href="${rootPath}index.html">${escapeHtml(brand.displayName)}</a><p>${escapeHtml(brand.footer.note)}</p><nav aria-label="Footer navigation">${footerLinks(brand.footer.links, `${rootPath}index.html`)}</nav></footer>
-  <aside class="cart-drawer" id="cart-drawer" aria-hidden="true" aria-label="Shopping bag" inert><div class="cart-drawer__head"><h2>Your bag</h2><button type="button" data-cart-close aria-label="Close bag">Close</button></div><div class="cart-drawer__items" data-cart-items><p>Your bag is waiting.</p></div><a class="button button--full" href="${rootPath}cart/index.html">Review bag</a></aside>
+  <aside class="cart-drawer" id="cart-drawer" aria-hidden="true" aria-label="Shopping bag" inert><div class="cart-drawer__head"><h2>Your bag</h2><button type="button" data-cart-close aria-label="Close bag">Close</button></div><div class="cart-drawer__items" data-cart-items><p>Your bag is waiting.</p></div><a class="button button--full" href="${rootPath}cart/index.html">Review bag</a><p class="cart-status" data-cart-status role="status" aria-live="polite" hidden></p></aside>
   <div class="scrim" data-scrim hidden></div>
 </body>
 </html>`;
@@ -193,7 +196,7 @@ export function renderProductPreview(brand, product) {
   }))).replaceAll("<", "\\u003c");
   const content = `<main id="main"><section class="preview-product">
     <div class="media preview-product__media"><img src="${rootPath}${escapeHtml(initialMedia.image)}" alt="${escapeHtml(initialMedia.alt)}" width="1200" height="1400" loading="eager" fetchpriority="high" data-preview-product-image></div>
-    <div class="preview-product__content"><p class="eyebrow">${escapeHtml(product.category)}</p><h1>${escapeHtml(product.name)}</h1><p class="preview-product__price" data-preview-price data-base-compare="${product.compareAtPrice || 0}">${price} ${compare}</p><p class="preview-product__description">${escapeHtml(product.description)}</p>
+    <div class="preview-product__content"><p class="eyebrow">${escapeHtml(product.category)}</p><h1>${escapeHtml(product.name)}</h1><p class="preview-product__price" data-preview-price data-base-compare="${product.compareAtPrice || 0}">${price} ${compare}</p><div class="preview-product__description">${productBodyHtml(product)}</div>
       <form class="preview-product__form">${options.map((option) => `<label><span>${escapeHtml(option.name)}</span><select name="${escapeHtml(option.name)}" data-product-option data-option-name="${escapeHtml(option.name)}">${option.values.map((rawValue) => { const value = typeof rawValue === "string" ? { label: rawValue, priceModifier: 0 } : rawValue; const change = value.priceModifier ? ` (${value.priceModifier > 0 ? "+" : "−"}${formatMoney(Math.abs(value.priceModifier), brand.locale, brand.currency)})` : ""; return `<option value="${escapeHtml(value.label)}" data-price-modifier="${value.priceModifier || 0}">${escapeHtml(value.label)}${change}</option>`; }).join("")}</select></label>`).join("")}${engravingField}<button class="button button--full" type="button" data-add-to-cart data-product-id="${escapeHtml(product.id)}" data-product="${escapeHtml(product.name)}" data-image="${escapeHtml(initialMedia.image)}" data-base-price="${product.price}" data-price="${product.price}">Add to bag</button></form>
       <div class="product-assurances"><p>Secure checkout in the native store.</p><p>Delivery details are shown before payment.</p></div>
     </div>

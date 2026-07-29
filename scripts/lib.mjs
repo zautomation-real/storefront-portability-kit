@@ -160,6 +160,13 @@ export function escapeHtml(value = "") {
     .replaceAll("'", "&#039;");
 }
 
+export function productBodyHtml(product) {
+  const description = `<p>${escapeHtml(product?.description)}</p>`;
+  const details = Array.isArray(product?.details) ? product.details : [];
+  if (!details.length) return description;
+  return `${description}<div class="product-details">${details.map((detail) => `<section class="product-detail"><h2>${escapeHtml(detail.title)}</h2><p>${escapeHtml(detail.body)}</p></section>`).join("")}</div>`;
+}
+
 export function formatMoney(minor, locale, currency) {
   return new Intl.NumberFormat(locale, {
     style: "currency",

@@ -12,7 +12,7 @@ Each brand pack starts with the decision a customer is trying to make. That dete
 
 ## 2. Keep portable facts portable
 
-Brand language, navigation, product fixtures, tokens, a generic presentation preset and section order live in JSON. Options may carry price modifiers in minor currency units; the generator expands them into the same Cartesian variant set on both platforms. Optional `variantMedia` rules associate visible option values or combinations with portable local artwork, with the most specific matching rule taking precedence. Shared CSS and small browser behaviours use a stable class and data-attribute contract. Presentation presets describe composition (`standard`, `editorial` or `technical`) without coupling the public method to a private brand identity.
+Brand language, navigation, product fixtures, tokens, a generic presentation preset and section order live in JSON. Options may carry price modifiers in minor currency units; the generator expands them into the same Cartesian variant set on both platforms. Optional `variantMedia` rules associate visible option values or combinations with portable local artwork, with the most specific matching rule taking precedence. Products may also include a portable `details` list of titled text blocks; the build escapes those values and turns them into the same structured product description for the static preview, Shopify and WooCommerce. Shared CSS and small browser behaviours use a stable class and data-attribute contract. Presentation presets describe composition (`standard`, `editorial` or `technical`) without coupling the public method to a private brand identity.
 
 ## 3. Keep commerce native
 

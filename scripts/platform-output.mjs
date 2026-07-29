@@ -1,4 +1,4 @@
-import { escapeHtml } from "./lib.mjs";
+import { escapeHtml, productBodyHtml } from "./lib.mjs";
 
 function sectionId(index, type) {
   return `${String(index + 1).padStart(2, "0")}_${type.replaceAll("-", "_")}`;
@@ -234,7 +234,7 @@ export function shopifyProductCsv(brand, catalog) {
       return [
         product.id,
         index === 0 ? product.name : "",
-        index === 0 ? `<p>${escapeHtml(product.description)}</p>` : "",
+        index === 0 ? productBodyHtml(product) : "",
         index === 0 ? brand.displayName : "",
         "",
         index === 0 ? product.category : "",
@@ -295,8 +295,8 @@ export function wooProductCsv(brand, catalog) {
       1,
       0,
       "visible",
-      product.description,
-      product.description,
+      escapeHtml(product.description),
+      productBodyHtml(product),
       isVariable ? "" : ((product.compareAtPrice || product.price) / 100).toFixed(2),
       isVariable || !product.compareAtPrice ? "" : (product.price / 100).toFixed(2),
       product.category,

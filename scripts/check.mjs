@@ -85,6 +85,20 @@ for (const entry of brands) {
     if (productIds.has(product.id)) fail(scope, `duplicate product id ${product.id}`);
     productIds.add(product.id);
     if (!isNonEmpty(product.name) || !isNonEmpty(product.category) || !isNonEmpty(product.description)) fail(scope, "name, category and description are required");
+    if (product.details != null) {
+      if (!Array.isArray(product.details) || !product.details.length) {
+        fail(scope, "details must be a non-empty array when supplied");
+      } else {
+        for (const [index, detail] of product.details.entries()) {
+          const detailScope = `${scope}/details:${index + 1}`;
+          if (!detail || typeof detail !== "object" || Array.isArray(detail)) {
+            fail(detailScope, "detail must be an object");
+          } else if (!isNonEmpty(detail.title) || !isNonEmpty(detail.body)) {
+            fail(detailScope, "title and body are required");
+          }
+        }
+      }
+    }
     if (!Number.isInteger(product.price) || product.price < 0) fail(scope, "price must use non-negative minor currency units");
     if (product.compareAtPrice != null && (!Number.isInteger(product.compareAtPrice) || product.compareAtPrice <= product.price)) fail(scope, "compareAtPrice must be an integer above price");
     await checkAsset(brandDir, scope, product.image);

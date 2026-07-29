@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
-import { presentationLayout } from "../scripts/lib.mjs";
+import { presentationLayout, productBodyHtml } from "../scripts/lib.mjs";
 import { renderProductPreview } from "../scripts/render-preview.mjs";
 import { combineShopifyProductCsv, productVariants, resolveVariantMedia, shopifyFallbackFooterSnippet, shopifyFallbackNavigationSnippet, shopifyFixtureImageSnippet, shopifyIndexTemplate, shopifyMediaManifest, shopifyPasswordTemplate, shopifyProductCsv, shopifyVariantMediaJsonSnippet, validateVariantMediaRules, wooProductCsv } from "../scripts/platform-output.mjs";
 
@@ -139,6 +139,41 @@ test("Shopify composition includes portable section settings and blocks", () => 
   assert.equal(template.sections.hero.settings.fallback_asset, "brand-hero.webp");
   assert.equal(template.sections["01_comparison"].settings.anchor_id, "compare");
   assert.equal(template.sections["01_comparison"].block_order.length, 1);
+});
+
+test("optional product details become escaped rich descriptions on every target", () => {
+  const detailedProduct = {
+    ...product,
+    description: "A useful <script>description</script> & overview.",
+    details: [
+      { title: "Materials & care", body: "Wipe with a <soft> cloth & let it dry." },
+      { title: "Made to fit", body: "Choose the option that works for you." }
+    ]
+  };
+  const expected = '<p>A useful &lt;script&gt;description&lt;/script&gt; &amp; overview.</p><div class="product-details"><section class="product-detail"><h2>Materials &amp; care</h2><p>Wipe with a &lt;soft&gt; cloth &amp; let it dry.</p></section><section class="product-detail"><h2>Made to fit</h2><p>Choose the option that works for you.</p></section></div>';
+  const shopifyRows = csvRows(shopifyProductCsv(brand, { products: [detailedProduct] }));
+  const wooRows = csvRows(wooProductCsv(brand, { products: [detailedProduct] }));
+  const preview = renderProductPreview(brand, detailedProduct);
+
+  assert.equal(productBodyHtml(detailedProduct), expected);
+  assert.equal(shopifyRows[1][shopifyRows[0].indexOf("Body (HTML)")], expected);
+  assert.equal(wooRows[1][wooRows[0].indexOf("Short description")], "A useful &lt;script&gt;description&lt;/script&gt; &amp; overview.");
+  assert.equal(wooRows[1][wooRows[0].indexOf("Description")], expected);
+  assert.match(preview, new RegExp(expected.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  assert.doesNotMatch(expected, /<script>|<soft>/);
+});
+
+test("products without details keep their original single-paragraph body", () => {
+  assert.equal(productBodyHtml(product), `<p>${product.description}</p>`);
+});
+
+test("the catalogue schema exposes optional structured product details", async () => {
+  const schema = JSON.parse(await readFile(new URL("../schema/catalog.schema.json", import.meta.url), "utf8"));
+  const details = schema.properties.products.items.properties.details;
+
+  assert.equal(details.type, "array");
+  assert.deepEqual(details.items.required, ["title", "body"]);
+  assert.equal(details.items.additionalProperties, false);
 });
 
 test("Shopify media manifest keeps portable assets aligned to stable variant SKUs", () => {
@@ -283,6 +318,21 @@ test("shared storefront composition fills product media and preserves hidden con
   assert.match(stylesheet, /\.newsletter form>\.button\{grid-column:2;/);
 });
 
+test("responsive content reserves space for long headings, testimonials and controls", async () => {
+  const [shared, shopify] = await Promise.all([
+    readFile(new URL("../shared/storefront.css", import.meta.url), "utf8"),
+    readFile(new URL("../adapters/shopify/assets/shopify.css", import.meta.url), "utf8")
+  ]);
+
+  assert.match(shared, /\.newsletter \.section-intro\{[^}]*margin:clamp\(/);
+  assert.match(shared, /\.testimonial-grid figure\{[^}]*gap:clamp\(/);
+  assert.match(shared, /\.testimonial-grid figcaption\{[^}]*margin-top:auto/);
+  assert.match(shared, /@media \(max-width:800px\)\{\.testimonial-grid\{grid-template-columns:1fr\}/);
+  assert.match(shared, /@media \(max-height:700px\)\{\.section-heading--sticky\{position:static\}/);
+  assert.match(shared, /body\[data-layout="technical"\] \.menu-button,[^}]*text-transform:uppercase/);
+  assert.match(shopify, /@media\(max-width:420px\)\{[\s\S]*?\.product-option__values\{grid-template-columns:1fr\}/);
+});
+
 test("Shopify product pages resolve native variants and preserve line-item properties", async () => {
   const template = await readFile(new URL("../adapters/shopify/sections/main-product.liquid", import.meta.url), "utf8");
 
@@ -321,10 +371,77 @@ test("Shopify cart and newsletter retain native platform submissions", async () 
   assert.match(runtime, /body\.dataset\.platform === "shopify"/);
   assert.match(runtime, /if \(!isNativeStorefront\)[\s\S]*?\[data-newsletter\]/);
   assert.match(runtime, /if \(isNativeStorefront\) refreshCartCount/);
-  assert.equal((runtime.match(/focus\(\{ preventScroll: true \}\)/g) || []).length, 2);
+  assert.ok((runtime.match(/focus\(\{ preventScroll: true \}\)/g) || []).length >= 2);
   assert.match(runtime, /drawerScrollPosition = window\.scrollY/);
   assert.equal((runtime.match(/window\.scrollTo\(\{ top: drawerScrollPosition, behavior: "instant" \}\)/g) || []).length, 2);
   assert.match(runtime, /setCart\(false, \{ restoreFocus: false \}\)/);
+});
+
+test("Shopify cart quantities update in place with accessible steppers and removal confirmation", async () => {
+  const [drawer, mainCart, runtime, stylesheet] = await Promise.all([
+    readFile(new URL("../adapters/shopify/sections/cart-drawer.liquid", import.meta.url), "utf8"),
+    readFile(new URL("../adapters/shopify/sections/main-cart.liquid", import.meta.url), "utf8"),
+    readFile(new URL("../shared/storefront.js", import.meta.url), "utf8"),
+    readFile(new URL("../shared/cart-controls.css", import.meta.url), "utf8")
+  ]);
+
+  for (const template of [drawer, mainCart]) {
+    assert.match(template, /data-cart-quantity/);
+    assert.match(template, /data-quantity-decrease/);
+    assert.match(template, /data-quantity-increase/);
+    assert.match(template, /data-quantity-input/);
+    assert.match(template, /data-cart-quantity-current="\{\{ item\.quantity \}\}"/);
+    assert.match(template, /data-cart-remove/);
+  }
+  assert.match(drawer, /<dialog[^>]+data-cart-confirm/);
+  assert.match(drawer, /aria-labelledby="CartConfirmTitle"/);
+  assert.match(drawer, /data-cart-confirm-cancel/);
+  assert.match(drawer, /data-cart-confirm-remove/);
+  assert.match(mainCart, /data-main-cart/);
+  assert.equal((mainCart.match(/name="update"/g) || []).length, 1);
+  assert.match(mainCart, /<noscript><button[^>]+name="update"/);
+  assert.match(mainCart, /\{% endif %\}\s*<p class="cart-status"/);
+
+  assert.match(runtime, /nativeCartUpdateDelay = 400/);
+  assert.match(runtime, /cart\/change\.js/);
+  assert.match(runtime, /quantity,\s*sections: sectionIds\.join\(","\),\s*sections_url:/);
+  assert.match(runtime, /fetchRenderedCartSections\(missingSections\)/);
+  assert.match(runtime, /replaceCartSections\(sections\)/);
+  assert.match(runtime, /window\.location\.reload\(\)/);
+  assert.match(runtime, /setCart\(true, \{ preserveContext: true, focusLineKey:/);
+  assert.match(runtime, /requestNativeCartRemoval/);
+  assert.match(runtime, /nativeRemove[\s\S]*?event\.preventDefault\(\)/);
+  assert.match(runtime, /quantity === 0[\s\S]*?requestNativeCartRemoval/);
+  assert.match(runtime, /function queueNativeCartMutation/);
+  assert.match(runtime, /await flushNativeCartChanges\(\)/);
+  assert.match(runtime, /async function flushNativeCartChanges\(\) \{\s*while \(true\)/);
+  assert.match(runtime, /nativeCartMutationActive \|\| document\.querySelector\("\[data-cart-confirm\]\[open\]"\)/);
+  assert.match(runtime, /nativeCartLink[\s\S]*?window\.location\.assign\(destination\)/);
+  assert.match(runtime, /event\.submitter\?\.name === "checkout"[\s\S]*?checkoutForm\.requestSubmit\(checkoutButton\)/);
+
+  assert.match(stylesheet, /\.quantity-control/);
+  assert.match(stylesheet, /-moz-appearance:textfield;appearance:textfield/);
+  assert.match(stylesheet, /::-webkit-inner-spin-button/);
+  assert.match(stylesheet, /\.cart-confirm::backdrop/);
+});
+
+test("static previews reuse the cart stepper and keep local drawer updates in place", async () => {
+  const [runtime, buildScript, stylesheet] = await Promise.all([
+    readFile(new URL("../shared/storefront.js", import.meta.url), "utf8"),
+    readFile(new URL("../scripts/build.mjs", import.meta.url), "utf8"),
+    readFile(new URL("../shared/cart-controls.css", import.meta.url), "utf8")
+  ]);
+  const preview = renderProductPreview(brand, product);
+
+  assert.match(preview, /cart-controls\.css/);
+  assert.match(runtime, /function previewQuantityControl/);
+  assert.match(runtime, /data-quantity-decrease/);
+  assert.match(runtime, /data-quantity-increase/);
+  assert.match(runtime, /function updatePreviewCartQuantity/);
+  assert.match(runtime, /window\.confirm\(`Remove \$\{productTitle\} from your bag\?`\)/);
+  assert.match(runtime, /setCart\(true, \{ preserveContext: true, focusLineKey: key \}\)/);
+  assert.match(buildScript, /shared", "cart-controls\.css/);
+  assert.match(stylesheet, /\.preview-cart-line>\.quantity-control/);
 });
 
 test("Shopify production shell includes password, 404 and SEO primitives", async () => {
@@ -340,6 +457,7 @@ test("Shopify production shell includes password, 404 and SEO primitives", async
 
   assert.match(themeLayout, /settings\.brand_name/);
   assert.match(themeLayout, /data-platform="shopify"/);
+  assert.match(themeLayout, /cart-controls\.css/);
   assert.match(themeLayout, /request\.page_type == 'index'/);
   assert.match(themeLayout, /seo_title == shop\.name/);
   assert.match(themeLayout, /__SOCIAL_IMAGE_ASSET__.*asset_url/);
