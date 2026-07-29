@@ -433,6 +433,9 @@ test("shared storefront composition fills product media and preserves hidden con
 
   assert.match(stylesheet, /\[hidden\]\{display:none!important\}/);
   assert.match(stylesheet, /\.product-card__media>\.media,\.product-card__media>\.media img\{width:100%;height:100%\}/);
+  assert.match(stylesheet, /\.product-card__media-selector\{[^}]*padding:0[^}]*border:0[^}]*background:transparent[^}]*box-shadow:none[^}]*backdrop-filter:none/);
+  assert.match(stylesheet, /\.product-card__media-choice\{[^}]*width:2\.5rem[^}]*height:2\.5rem/);
+  assert.match(stylesheet, /\.product-card__media-choice::before\{[^}]*width:\.9rem[^}]*height:\.9rem/);
   assert.match(stylesheet, /\.newsletter form>label\{grid-column:1;/);
   assert.match(stylesheet, /\.newsletter form>\.button\{grid-column:2;/);
 });
