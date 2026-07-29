@@ -347,6 +347,66 @@ test("Shopify product pages resolve native variants and preserve line-item prope
   assert.match(template, /data-native-cart-form/);
 });
 
+test("product pages use a dedicated vertical quantity control", async () => {
+  const [template, runtime, stylesheet] = await Promise.all([
+    readFile(new URL("../adapters/shopify/sections/main-product.liquid", import.meta.url), "utf8"),
+    readFile(new URL("../shared/storefront.js", import.meta.url), "utf8"),
+    readFile(new URL("../shared/storefront.css", import.meta.url), "utf8")
+  ]);
+  const preview = renderProductPreview(brand, product);
+
+  for (const markup of [template, preview]) {
+    assert.match(markup, /data-product-quantity/);
+    assert.match(markup, /data-product-quantity-input/);
+    assert.match(markup, /data-product-quantity-increase/);
+    assert.match(markup, /data-product-quantity-decrease/);
+    assert.match(markup, /name="quantity"[^>]+min="1"[^>]+step="1"/);
+    assert.match(markup, /type="button"[^>]+data-product-quantity-increase/);
+    assert.match(markup, /type="button"[^>]+data-product-quantity-decrease/);
+  }
+
+  assert.match(runtime, /function normalizedProductQuantity/);
+  assert.match(runtime, /function connectProductQuantityControl/);
+  assert.match(runtime, /function syncProductQuantity/);
+  assert.match(runtime, /existing\.quantity \+= quantity/);
+  assert.match(runtime, /data-product-quantity-decrease\],\[data-product-quantity-increase/);
+  assert.doesNotMatch(runtime, /data-product-quantity-decrease[^\n]+requestNativeCartRemoval/);
+  assert.match(stylesheet, /\.product-quantity__field\{display:grid;grid-template-columns:6\.5rem 2\.75rem/);
+  assert.match(stylesheet, /\.product-quantity__button\{[^}]+min-height:2\.75rem/);
+  assert.match(stylesheet, /\.product-quantity__buttons\{display:grid;grid-template-rows:1fr 1fr/);
+  assert.match(stylesheet, /\.product-quantity__field input::-webkit-inner-spin-button/);
+});
+
+test("product pages show the rest of the catalogue without repeating the current product", async () => {
+  const siblingOne = { ...product, id: "sibling-one", name: "Sibling one", image: "assets/sibling-one.webp", options: [] };
+  const siblingTwo = { ...product, id: "sibling-two", name: "Sibling two", image: "assets/sibling-two.webp", options: [] };
+  const preview = renderProductPreview(brand, product, { products: [product, siblingOne, siblingTwo] });
+  const related = preview.slice(preview.indexOf('<section class="section related-products"'));
+  const [template, section] = await Promise.all([
+    readFile(new URL("../adapters/shopify/templates/product.json", import.meta.url), "utf8"),
+    readFile(new URL("../adapters/shopify/sections/related-products.liquid", import.meta.url), "utf8")
+  ]);
+
+  assert.match(related, /href="\.\.\/sibling-one\/index\.html"/);
+  assert.match(related, /href="\.\.\/sibling-two\/index\.html"/);
+  assert.match(related, /src="\.\.\/\.\.\/assets\/sibling-one\.webp"/);
+  assert.doesNotMatch(related, /configured-product\/index\.html/);
+  assert.equal((related.match(/class="product-card"/g) || []).length, 2);
+  assert.match(template, /"related": \{ "type": "related-products"/);
+  assert.match(template, /"order": \["main", "related"\]/);
+  assert.match(section, /related_product\.id != product\.id/);
+  assert.match(section, /collections\.all\.products/);
+  assert.match(section, /render 'product-card', product: related_product/);
+  assert.match(section, /product-grid--related/);
+});
+
+test("Shopify keeps the section wrapper sticky instead of constraining the menu", async () => {
+  const stylesheet = await readFile(new URL("../adapters/shopify/assets/shopify.css", import.meta.url), "utf8");
+
+  assert.match(stylesheet, /#shopify-section-site-header\{position:sticky;z-index:30;top:0\}/);
+  assert.match(stylesheet, /#shopify-section-site-header \.site-header\{position:relative;z-index:auto;top:auto\}/);
+});
+
 test("Shopify cart and newsletter retain native platform submissions", async () => {
   const [drawer, mainCart, newsletter, runtime] = await Promise.all([
     readFile(new URL("../adapters/shopify/sections/cart-drawer.liquid", import.meta.url), "utf8"),
@@ -434,11 +494,15 @@ test("static previews reuse the cart stepper and keep local drawer updates in pl
   const preview = renderProductPreview(brand, product);
 
   assert.match(preview, /cart-controls\.css/);
+  assert.match(preview, /<dialog[^>]+data-cart-confirm/);
+  assert.match(preview, /data-cart-confirm-cancel/);
+  assert.match(preview, /data-cart-confirm-remove/);
   assert.match(runtime, /function previewQuantityControl/);
   assert.match(runtime, /data-quantity-decrease/);
   assert.match(runtime, /data-quantity-increase/);
   assert.match(runtime, /function updatePreviewCartQuantity/);
-  assert.match(runtime, /window\.confirm\(`Remove \$\{productTitle\} from your bag\?`\)/);
+  assert.match(runtime, /openCartRemovalDialog\(\{ key, productTitle, source: "preview" \}\)/);
+  assert.match(runtime, /function completeCartRemoval/);
   assert.match(runtime, /setCart\(true, \{ preserveContext: true, focusLineKey: key \}\)/);
   assert.match(buildScript, /shared", "cart-controls\.css/);
   assert.match(stylesheet, /\.preview-cart-line>\.quantity-control/);

@@ -11,29 +11,41 @@ const footerLinks = (items = [], homePath = "") => items
   })
   .join("");
 
+const cartConfirmDialog = () => `<dialog class="cart-confirm" data-cart-confirm aria-labelledby="CartConfirmTitle" aria-describedby="CartConfirmBody">
+  <div class="cart-confirm__content">
+    <h2 id="CartConfirmTitle">Remove this item?</h2>
+    <p id="CartConfirmBody">This will remove it from your bag: <strong data-cart-confirm-name></strong></p>
+    <div class="actions">
+      <button class="button button--quiet" type="button" data-cart-confirm-cancel>Keep item</button>
+      <button class="button" type="button" data-cart-confirm-remove>Remove</button>
+    </div>
+  </div>
+</dialog>`;
+
 function media(pathname, alt, className = "", loading = "lazy") {
   const priority = loading === "eager" ? ' fetchpriority="high"' : "";
   return `<div class="media ${className}"><img src="${escapeHtml(pathname)}" alt="${escapeHtml(alt)}" width="1200" height="1400" loading="${loading}"${priority}></div>`;
 }
 
-function productCard(product, brand) {
+function productCard(product, brand, { productRoot = "products/", assetRoot = "" } = {}) {
   const price = formatMoney(product.price, brand.locale, brand.currency);
   const compare = product.compareAtPrice
     ? `<s>${formatMoney(product.compareAtPrice, brand.locale, brand.currency)}</s>`
     : "";
   const needsConfiguration = (product.options || []).some((option) => option.values.length > 1) || (product.options || []).length > 1;
+  const productUrl = `${productRoot}${escapeHtml(product.id)}/index.html`;
   return `<article class="product-card">
-    <a class="product-card__media" href="products/${escapeHtml(product.id)}/index.html">
-      ${media(product.image, product.name)}
+    <a class="product-card__media" href="${productUrl}">
+      ${media(`${assetRoot}${product.image}`, product.name)}
       ${product.badge ? `<span class="product-card__badge">${escapeHtml(product.badge)}</span>` : ""}
     </a>
     <div class="product-card__body">
       <p class="product-card__category">${escapeHtml(product.category)}</p>
-      <h3><a href="products/${escapeHtml(product.id)}/index.html">${escapeHtml(product.name)}</a></h3>
+      <h3><a href="${productUrl}">${escapeHtml(product.name)}</a></h3>
       <p>${escapeHtml(product.description)}</p>
       <div class="product-card__buy">
         <span>${price} ${compare}</span>
-        ${needsConfiguration ? `<a class="text-button" href="products/${escapeHtml(product.id)}/index.html">Choose options</a>` : `<button class="text-button" type="button" data-add-to-cart data-product-id="${escapeHtml(product.id)}" data-product="${escapeHtml(product.name)}" data-image="${escapeHtml(product.image)}" data-price="${product.price}">Add</button>`}
+        ${needsConfiguration ? `<a class="text-button" href="${productUrl}">Choose options</a>` : `<button class="text-button" type="button" data-add-to-cart data-product-id="${escapeHtml(product.id)}" data-product="${escapeHtml(product.name)}" data-image="${escapeHtml(product.image)}" data-price="${product.price}">Add</button>`}
       </div>
     </div>
   </article>`;
@@ -141,6 +153,7 @@ export function renderPreview(brand, catalog) {
     <a class="button button--full" href="cart/index.html">Review bag</a>
     <p class="cart-status" data-cart-status role="status" aria-live="polite" hidden></p>
   </aside>
+  ${cartConfirmDialog()}
   <div class="scrim" data-scrim hidden></div>
 </body>
 </html>`;
@@ -173,18 +186,20 @@ function nestedDocument(brand, { rootPath, title, description, content, bodyClas
   ${content}
   <footer class="site-footer"><a class="wordmark" href="${rootPath}index.html">${escapeHtml(brand.displayName)}</a><p>${escapeHtml(brand.footer.note)}</p><nav aria-label="Footer navigation">${footerLinks(brand.footer.links, `${rootPath}index.html`)}</nav></footer>
   <aside class="cart-drawer" id="cart-drawer" aria-hidden="true" aria-label="Shopping bag" inert><div class="cart-drawer__head"><h2>Your bag</h2><button type="button" data-cart-close aria-label="Close bag">Close</button></div><div class="cart-drawer__items" data-cart-items><p>Your bag is waiting.</p></div><a class="button button--full" href="${rootPath}cart/index.html">Review bag</a><p class="cart-status" data-cart-status role="status" aria-live="polite" hidden></p></aside>
+  ${cartConfirmDialog()}
   <div class="scrim" data-scrim hidden></div>
 </body>
 </html>`;
 }
 
-export function renderProductPreview(brand, product) {
+export function renderProductPreview(brand, product, catalog = { products: [] }) {
   const rootPath = "../../";
   const price = formatMoney(product.price, brand.locale, brand.currency);
   const compare = product.compareAtPrice ? `<s>${formatMoney(product.compareAtPrice, brand.locale, brand.currency)}</s>` : "";
   const options = product.options || [];
   const hasEngraving = options.some((option) => option.name.trim().toLowerCase() === "engraving");
   const engravingId = `PreviewEngraving-${product.id}`;
+  const quantityId = `PreviewQuantity-${product.id}`;
   const engravingField = hasEngraving ? `<label class="product-property" data-preview-engraving hidden><span>Engraving text</span><textarea id="${escapeHtml(engravingId)}" name="Engraving" rows="3" maxlength="18" autocomplete="off" aria-describedby="${escapeHtml(engravingId)}-help" data-preview-engraving-input disabled></textarea><small id="${escapeHtml(engravingId)}-help">Maximum <span data-preview-engraving-limit>18</span> characters.</small></label>` : "";
   const variants = productVariants(product);
   const initialMedia = variants[0].media;
@@ -194,13 +209,18 @@ export function renderProductPreview(brand, product) {
     asset: variant.media.image,
     alt: variant.media.alt
   }))).replaceAll("<", "\\u003c");
+  const relatedProducts = (catalog.products || []).filter((candidate) => candidate.id !== product.id);
+  const relatedSection = relatedProducts.length ? `<section class="section related-products" aria-labelledby="RelatedProducts-${escapeHtml(product.id)}">
+    <div class="section-heading"><p class="eyebrow">Keep looking</p><h2 id="RelatedProducts-${escapeHtml(product.id)}">More from the collection</h2></div>
+    <div class="product-grid product-grid--related">${relatedProducts.map((candidate) => productCard(candidate, brand, { productRoot: "../", assetRoot: rootPath })).join("")}</div>
+  </section>` : "";
   const content = `<main id="main"><section class="preview-product">
     <div class="media preview-product__media"><img src="${rootPath}${escapeHtml(initialMedia.image)}" alt="${escapeHtml(initialMedia.alt)}" width="1200" height="1400" loading="eager" fetchpriority="high" data-preview-product-image></div>
     <div class="preview-product__content"><p class="eyebrow">${escapeHtml(product.category)}</p><h1>${escapeHtml(product.name)}</h1><p class="preview-product__price" data-preview-price data-base-compare="${product.compareAtPrice || 0}">${price} ${compare}</p><div class="preview-product__description">${productBodyHtml(product)}</div>
-      <form class="preview-product__form">${options.map((option) => `<label><span>${escapeHtml(option.name)}</span><select name="${escapeHtml(option.name)}" data-product-option data-option-name="${escapeHtml(option.name)}">${option.values.map((rawValue) => { const value = typeof rawValue === "string" ? { label: rawValue, priceModifier: 0 } : rawValue; const change = value.priceModifier ? ` (${value.priceModifier > 0 ? "+" : "−"}${formatMoney(Math.abs(value.priceModifier), brand.locale, brand.currency)})` : ""; return `<option value="${escapeHtml(value.label)}" data-price-modifier="${value.priceModifier || 0}">${escapeHtml(value.label)}${change}</option>`; }).join("")}</select></label>`).join("")}${engravingField}<button class="button button--full" type="button" data-add-to-cart data-product-id="${escapeHtml(product.id)}" data-product="${escapeHtml(product.name)}" data-image="${escapeHtml(initialMedia.image)}" data-base-price="${product.price}" data-price="${product.price}">Add to bag</button></form>
+      <form class="preview-product__form">${options.map((option) => `<label><span>${escapeHtml(option.name)}</span><select name="${escapeHtml(option.name)}" data-product-option data-option-name="${escapeHtml(option.name)}">${option.values.map((rawValue) => { const value = typeof rawValue === "string" ? { label: rawValue, priceModifier: 0 } : rawValue; const change = value.priceModifier ? ` (${value.priceModifier > 0 ? "+" : "−"}${formatMoney(Math.abs(value.priceModifier), brand.locale, brand.currency)})` : ""; return `<option value="${escapeHtml(value.label)}" data-price-modifier="${value.priceModifier || 0}">${escapeHtml(value.label)}${change}</option>`; }).join("")}</select></label>`).join("")}${engravingField}<div class="product-quantity" data-product-quantity><label for="${escapeHtml(quantityId)}">Quantity</label><div class="product-quantity__field"><input type="number" id="${escapeHtml(quantityId)}" name="quantity" min="1" step="1" value="1" inputmode="numeric" data-product-quantity-input><div class="product-quantity__buttons"><button class="product-quantity__button" type="button" data-product-quantity-increase aria-controls="${escapeHtml(quantityId)}" aria-label="Increase quantity for ${escapeHtml(product.name)}"><span aria-hidden="true">&plus;</span></button><button class="product-quantity__button" type="button" data-product-quantity-decrease aria-controls="${escapeHtml(quantityId)}" aria-label="Decrease quantity for ${escapeHtml(product.name)}"><span aria-hidden="true">&minus;</span></button></div></div></div><button class="button button--full" type="button" data-add-to-cart data-product-id="${escapeHtml(product.id)}" data-product="${escapeHtml(product.name)}" data-image="${escapeHtml(initialMedia.image)}" data-base-price="${product.price}" data-price="${product.price}">Add to bag</button></form>
       <div class="product-assurances"><p>Secure checkout in the native store.</p><p>Delivery details are shown before payment.</p></div>
     </div>
-  </section><script type="application/json" data-preview-variant-media>${variantMedia}</script><script>(()=>{const root=document.currentScript.closest("main");const form=root?.querySelector(".preview-product__form");const image=root?.querySelector("[data-preview-product-image]");const button=form?.querySelector("[data-add-to-cart]");const optionInputs=[...(form?.querySelectorAll("[data-product-option]")||[])];const engravingChoice=optionInputs.find((input)=>(input.dataset.optionName||"").trim().toLowerCase()==="engraving");const engravingProperty=form?.querySelector("[data-preview-engraving]");const engravingInput=form?.querySelector("[data-preview-engraving-input]");const engravingLimit=form?.querySelector("[data-preview-engraving-limit]");let variants=[];try{variants=JSON.parse(root?.querySelector("[data-preview-variant-media]")?.textContent||"[]")}catch{}const updateMedia=()=>{const values=optionInputs.map((select)=>select.value);const variant=variants.find((candidate)=>candidate.options.every((value,index)=>value===values[index]));if(!variant||!image)return;image.src=variant.src;image.alt=variant.alt||"";if(button)button.dataset.image=variant.asset};const updateEngraving=()=>{if(!engravingChoice||!engravingProperty||!engravingInput)return;const value=engravingChoice.value.trim();const normalized=value.toLowerCase().replace(/[_-]+/g," ");const required=Boolean(value)&&normalized!=="none"&&!normalized.includes("no engraving")&&!normalized.includes("without engraving");const statedLimit=value.match(/\\d+/)?.[0];const maximum=Math.max(1,Math.min(100,Number(statedLimit)||18));engravingProperty.hidden=!required;engravingInput.disabled=!required;engravingInput.required=required;engravingInput.maxLength=maximum;if(!required)engravingInput.value="";if(engravingLimit)engravingLimit.textContent=String(maximum)};const update=()=>{updateMedia();updateEngraving()};form?.addEventListener("change",update);update()})();</script></main>`;
+  </section><script type="application/json" data-preview-variant-media>${variantMedia}</script><script>(()=>{const root=document.currentScript.closest("main");const form=root?.querySelector(".preview-product__form");const image=root?.querySelector("[data-preview-product-image]");const button=form?.querySelector("[data-add-to-cart]");const optionInputs=[...(form?.querySelectorAll("[data-product-option]")||[])];const engravingChoice=optionInputs.find((input)=>(input.dataset.optionName||"").trim().toLowerCase()==="engraving");const engravingProperty=form?.querySelector("[data-preview-engraving]");const engravingInput=form?.querySelector("[data-preview-engraving-input]");const engravingLimit=form?.querySelector("[data-preview-engraving-limit]");let variants=[];try{variants=JSON.parse(root?.querySelector("[data-preview-variant-media]")?.textContent||"[]")}catch{}const updateMedia=()=>{const values=optionInputs.map((select)=>select.value);const variant=variants.find((candidate)=>candidate.options.every((value,index)=>value===values[index]));if(!variant||!image)return;image.src=variant.src;image.alt=variant.alt||"";if(button)button.dataset.image=variant.asset};const updateEngraving=()=>{if(!engravingChoice||!engravingProperty||!engravingInput)return;const value=engravingChoice.value.trim();const normalized=value.toLowerCase().replace(/[_-]+/g," ");const required=Boolean(value)&&normalized!=="none"&&!normalized.includes("no engraving")&&!normalized.includes("without engraving");const statedLimit=value.match(/\\d+/)?.[0];const maximum=Math.max(1,Math.min(100,Number(statedLimit)||18));engravingProperty.hidden=!required;engravingInput.disabled=!required;engravingInput.required=required;engravingInput.maxLength=maximum;if(!required)engravingInput.value="";if(engravingLimit)engravingLimit.textContent=String(maximum)};const update=()=>{updateMedia();updateEngraving()};form?.addEventListener("change",update);update()})();</script>${relatedSection}</main>`;
   return nestedDocument(brand, { rootPath, title: product.name, description: product.description, content, bodyClass: "product-preview" });
 }
 

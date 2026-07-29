@@ -21,7 +21,7 @@ async function buildPreview() {
   await resetDir(output);
   await writeText(path.join(output, "index.html"), renderPreview(brand, catalog));
   for (const product of catalog.products) {
-    await writeText(path.join(output, "products", product.id, "index.html"), renderProductPreview(brand, product));
+    await writeText(path.join(output, "products", product.id, "index.html"), renderProductPreview(brand, product, catalog));
   }
   await writeText(path.join(output, "cart", "index.html"), renderCartPreview(brand));
   await copyIfPresent(path.join(root, "shared", "storefront.css"), path.join(output, "storefront.css"));

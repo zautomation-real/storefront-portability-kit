@@ -1,5 +1,7 @@
 .shopify-product-form{margin:0}
 .shopify-product-form button{appearance:none}
+body[data-platform="shopify"] #shopify-section-site-header{position:sticky;z-index:30;top:0}
+body[data-platform="shopify"] #shopify-section-site-header .site-header{position:relative;z-index:auto;top:auto}
 .main-product{display:grid;grid-template-columns:minmax(0,1.08fr) minmax(24rem,.92fr);min-height:calc(100svh - 6.6rem);border-bottom:1px solid var(--line)}
 .main-product__media{min-height:44rem;aspect-ratio:4/5}
 .main-product__media img,.main-product__media svg{width:100%;height:100%;object-fit:cover}
@@ -22,11 +24,10 @@
 .product-option__input:disabled+.product-option__label{cursor:not-allowed;opacity:.4;text-decoration:line-through;transform:none}
 .product-property{display:grid;gap:.45rem;padding:1rem;border:1px solid var(--line);background:var(--soft)}
 .product-property label{margin:0}
-.product-property input,.main-product__form>input[type="number"],.main-product select{max-width:100%;min-height:3.15rem;padding:.7rem .8rem;border:1px solid var(--line);border-radius:0;background:var(--paper);color:var(--ink)}
+.product-property input,.main-product select{max-width:100%;min-height:3.15rem;padding:.7rem .8rem;border:1px solid var(--line);border-radius:0;background:var(--paper);color:var(--ink)}
 .main-product select{width:100%}
 .product-property input{width:100%}
 .product-property small{font-size:.72rem;opacity:.68}
-.main-product__form>input[type="number"]{width:6.5rem}
 .main-product__form>.button{margin-top:.25rem}
 .main-product__form>.button[aria-busy="true"]{cursor:progress}
 .product-form__status{margin:0;padding:.8rem 1rem;border-left:3px solid var(--accent);background:var(--soft);font-size:.84rem;font-weight:700}

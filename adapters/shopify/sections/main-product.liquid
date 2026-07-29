@@ -91,15 +91,37 @@
         </div>
       {% endif %}
 
-      <label for="Quantity-{{ section.id }}">Quantity</label>
-      <input
-        type="number"
-        id="Quantity-{{ section.id }}"
-        name="quantity"
-        min="1"
-        value="1"
-        inputmode="numeric"
-      >
+      <div class="product-quantity" data-product-quantity>
+        <label for="Quantity-{{ section.id }}">Quantity</label>
+        <div class="product-quantity__field">
+          <input
+            type="number"
+            id="Quantity-{{ section.id }}"
+            name="quantity"
+            min="1"
+            step="1"
+            value="1"
+            inputmode="numeric"
+            data-product-quantity-input
+          >
+          <div class="product-quantity__buttons">
+            <button
+              class="product-quantity__button"
+              type="button"
+              data-product-quantity-increase
+              aria-controls="Quantity-{{ section.id }}"
+              aria-label="Increase quantity for {{ product.title | escape }}"
+            ><span aria-hidden="true">&plus;</span></button>
+            <button
+              class="product-quantity__button"
+              type="button"
+              data-product-quantity-decrease
+              aria-controls="Quantity-{{ section.id }}"
+              aria-label="Decrease quantity for {{ product.title | escape }}"
+            ><span aria-hidden="true">&minus;</span></button>
+          </div>
+        </div>
+      </div>
 
       <noscript>
         {% if product.has_only_default_variant %}

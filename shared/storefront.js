@@ -10,6 +10,7 @@ const nativeCartUpdateDelay = 400;
 let nativeCartQueue = Promise.resolve();
 let nativeCartMutationActive = false;
 let pendingCartRemoval = null;
+let productQuantityControlIndex = 0;
 
 const getMenuButton = () => document.querySelector("[data-menu-toggle]");
 const getNav = () => document.querySelector("#primary-nav");
@@ -158,6 +159,47 @@ function updateProductForm(form) {
   priceOutput.innerHTML = `${money(price)}${baseCompare ? ` <s>${money(baseCompare + modifier)}</s>` : ""}`;
 }
 
+function productQuantityInput(control) {
+  return control?.querySelector("[data-product-quantity-input],input.qty,input[name='quantity']");
+}
+
+function connectProductQuantityControl(control) {
+  const input = productQuantityInput(control);
+  if (!input) return null;
+  if (!input.id) {
+    productQuantityControlIndex += 1;
+    input.id = `product-quantity-${productQuantityControlIndex}`;
+  }
+  control.querySelectorAll("[data-product-quantity-decrease],[data-product-quantity-increase]").forEach((button) => {
+    button.setAttribute("aria-controls", input.id);
+  });
+  return input;
+}
+
+function normalizedProductQuantity(input, requested = input?.value) {
+  if (!input) return 1;
+  const minimum = Math.max(1, Math.floor(Number(input.min) || 1));
+  const parsedMaximum = Math.floor(Number(input.max));
+  const maximum = Number.isFinite(parsedMaximum) && parsedMaximum >= minimum ? parsedMaximum : 999;
+  const candidate = Math.floor(Number(requested));
+  return Math.min(maximum, Math.max(minimum, Number.isFinite(candidate) ? candidate : minimum));
+}
+
+function syncProductQuantity(control, requested) {
+  const input = connectProductQuantityControl(control);
+  if (!input) return 1;
+  const quantity = normalizedProductQuantity(input, requested);
+  input.value = String(quantity);
+  const minimum = Math.max(1, Math.floor(Number(input.min) || 1));
+  const parsedMaximum = Math.floor(Number(input.max));
+  const maximum = Number.isFinite(parsedMaximum) && parsedMaximum >= minimum ? parsedMaximum : 999;
+  const decrease = control.querySelector("[data-product-quantity-decrease]");
+  const increase = control.querySelector("[data-product-quantity-increase]");
+  if (decrease) decrease.disabled = quantity <= minimum;
+  if (increase) increase.disabled = quantity >= maximum;
+  return quantity;
+}
+
 function renderCart() {
   renderDrawer();
   renderCartPage();
@@ -179,15 +221,40 @@ function updatePreviewCartQuantity(key, quantity) {
   if (keepDrawerOpen) setCart(true, { preserveContext: true, focusLineKey: key });
 }
 
-function removePreviewCartLine(key, productTitle = "this item") {
-  if (!window.confirm(`Remove ${productTitle} from your bag?`)) {
-    const item = items.find((candidate) => lineKey(candidate) === key);
-    if (item) nativeCartInputsFor(key).forEach((input) => { input.value = String(item.quantity); });
-    return;
-  }
+function completePreviewCartRemoval(key) {
   const keepDrawerOpen = getCart()?.getAttribute("aria-hidden") === "false";
   removeLine(key);
   if (keepDrawerOpen) setCart(true, { preserveContext: true });
+}
+
+function completeCartRemoval(removal) {
+  if (!removal?.key) return;
+  if (removal.source === "preview") {
+    completePreviewCartRemoval(removal.key);
+    return;
+  }
+  nativeCartInputsFor(removal.key).forEach((input) => { input.value = "0"; });
+  queueNativeCartChange(removal.key, 0);
+}
+
+function openCartRemovalDialog({ key, productTitle = "this item", source }) {
+  if (!key) return;
+  pendingCartRemoval = { key, productTitle, source };
+  const dialog = document.querySelector("[data-cart-confirm]");
+  const name = dialog?.querySelector("[data-cart-confirm-name]");
+  if (name) name.textContent = productTitle;
+  if (dialog?.showModal) {
+    if (!dialog.open) dialog.showModal();
+    return;
+  }
+  const removal = pendingCartRemoval;
+  pendingCartRemoval = null;
+  if (window.confirm(`Remove ${productTitle} from your bag?`)) completeCartRemoval(removal);
+  else resetPendingCartRemoval();
+}
+
+function removePreviewCartLine(key, productTitle = "this item") {
+  openCartRemovalDialog({ key, productTitle, source: "preview" });
 }
 
 function closeMenu({ restoreFocus = false } = {}) {
@@ -376,20 +443,7 @@ function requestNativeCartRemoval({ key, productTitle = "this item" }) {
   if (timer) clearTimeout(timer);
   nativeCartUpdateTimers.delete(key);
   nativeCartPendingQuantities.delete(key);
-  pendingCartRemoval = { key, productTitle };
-  const dialog = document.querySelector("[data-cart-confirm]");
-  const name = dialog?.querySelector("[data-cart-confirm-name]");
-  if (name) name.textContent = productTitle;
-  if (dialog?.showModal) {
-    if (!dialog.open) dialog.showModal();
-    return;
-  }
-  if (window.confirm(`Remove ${productTitle} from your bag?`)) {
-    pendingCartRemoval = null;
-    queueNativeCartChange(key, 0);
-  } else {
-    resetPendingCartRemoval();
-  }
+  openCartRemovalDialog({ key, productTitle, source: "native" });
 }
 
 function scheduleNativeCartChange(input, delay = nativeCartUpdateDelay) {
@@ -479,17 +533,20 @@ async function addToNativeCart(form) {
 
 document.querySelectorAll("[data-add-to-cart]").forEach((button) => {
   button.addEventListener("click", () => {
-    const { option } = configurationFor(button.closest("form"));
+    const form = button.closest("form");
+    const { option } = configurationFor(form);
+    const quantityControl = form?.querySelector("[data-product-quantity]");
+    const quantity = quantityControl ? syncProductQuantity(quantityControl) : 1;
     const candidate = {
       id: button.dataset.productId,
       name: button.dataset.product,
       image: button.dataset.image,
       price: Number(button.dataset.price),
       option,
-      quantity: 1
+      quantity
     };
     const existing = items.find((item) => lineKey(item) === lineKey(candidate));
-    if (existing) existing.quantity += 1;
+    if (existing) existing.quantity += quantity;
     else items.push(candidate);
     saveCart();
     renderCart();
@@ -498,6 +555,19 @@ document.querySelectorAll("[data-add-to-cart]").forEach((button) => {
 });
 
 document.addEventListener("click", (event) => {
+  const productQuantityButton = event.target.closest("[data-product-quantity-decrease],[data-product-quantity-increase]");
+  if (productQuantityButton) {
+    event.preventDefault();
+    const control = productQuantityButton.closest("[data-product-quantity]");
+    const input = productQuantityInput(control);
+    if (!input) return;
+    const current = normalizedProductQuantity(input);
+    const next = productQuantityButton.matches("[data-product-quantity-increase]") ? current + 1 : current - 1;
+    syncProductQuantity(control, next);
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+    return;
+  }
   const confirmCancel = event.target.closest("[data-cart-confirm-cancel]");
   if (confirmCancel) {
     const dialog = confirmCancel.closest("[data-cart-confirm]");
@@ -511,10 +581,7 @@ document.addEventListener("click", (event) => {
     const removal = pendingCartRemoval;
     pendingCartRemoval = null;
     dialog?.close?.();
-    if (removal?.key) {
-      nativeCartInputsFor(removal.key).forEach((input) => { input.value = "0"; });
-      queueNativeCartChange(removal.key, 0);
-    }
+    completeCartRemoval(removal);
     return;
   }
   const quantityButton = event.target.closest("[data-quantity-decrease],[data-quantity-increase]");
@@ -587,6 +654,12 @@ document.addEventListener("click", (event) => {
 });
 
 document.addEventListener("input", (event) => {
+  const productInput = event.target.closest("[data-product-quantity-input],[data-product-quantity] input.qty");
+  if (productInput) {
+    const control = productInput.closest("[data-product-quantity]");
+    if (control && productInput.value !== "") syncProductQuantity(control);
+    return;
+  }
   if (!isNativeStorefront) return;
   const input = event.target.closest("[data-quantity-input]");
   if (input) scheduleNativeCartChange(input);
@@ -614,11 +687,19 @@ document.addEventListener("submit", (event) => {
   }
   const form = event.target.closest("form[data-native-cart-form]");
   if (!form) return;
+  const productQuantity = form.querySelector("[data-product-quantity]");
+  if (productQuantity) syncProductQuantity(productQuantity);
   event.preventDefault();
   addToNativeCart(form);
 });
 
 document.addEventListener("change", (event) => {
+  const productInput = event.target.closest("[data-product-quantity-input],[data-product-quantity] input.qty");
+  if (productInput) {
+    const control = productInput.closest("[data-product-quantity]");
+    if (control) syncProductQuantity(control);
+    return;
+  }
   if (isNativeStorefront) {
     const nativeQuantity = event.target.closest("[data-quantity-input]");
     if (nativeQuantity?.value === "") restoreNativeCartQuantity(nativeQuantity.dataset.cartLineKey);
@@ -677,6 +758,8 @@ document.addEventListener("keydown", (event) => {
 window.matchMedia("(min-width: 901px)").addEventListener("change", (event) => {
   if (event.matches) closeMenu();
 });
+
+document.querySelectorAll("[data-product-quantity]").forEach((control) => syncProductQuantity(control));
 
 if (isNativeStorefront) refreshCartCount().catch(() => {});
 else renderCart();

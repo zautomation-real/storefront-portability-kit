@@ -1,0 +1,43 @@
+{% liquid
+  assign related_count = 0
+  assign related_limit = section.settings.limit | default: 3
+%}
+
+{% capture related_cards %}
+  {% for related_product in collections.all.products %}
+    {% liquid
+      assign vendor_matches = true
+      if settings.catalog_vendor != blank and related_product.vendor != settings.catalog_vendor
+        assign vendor_matches = false
+      endif
+    %}
+    {% if related_product.id != product.id and vendor_matches %}
+      {% render 'product-card', product: related_product %}
+      {% assign related_count = related_count | plus: 1 %}
+      {% if related_count >= related_limit %}{% break %}{% endif %}
+    {% endif %}
+  {% endfor %}
+{% endcapture %}
+
+{% if related_count > 0 %}
+  <section class="section related-products" aria-labelledby="RelatedProducts-{{ section.id }}">
+    <div class="section-heading">
+      {% if section.settings.eyebrow != blank %}<p class="eyebrow">{{ section.settings.eyebrow | escape }}</p>{% endif %}
+      <h2 id="RelatedProducts-{{ section.id }}">{{ section.settings.title | escape }}</h2>
+      {% if section.settings.body != blank %}<p class="section-intro">{{ section.settings.body | escape }}</p>{% endif %}
+    </div>
+    <div class="product-grid product-grid--related">{{ related_cards }}</div>
+  </section>
+{% endif %}
+
+{% schema %}
+{
+  "name": "Related products",
+  "settings": [
+    { "type": "text", "id": "eyebrow", "label": "Eyebrow", "default": "Keep looking" },
+    { "type": "text", "id": "title", "label": "Title", "default": "More from the collection" },
+    { "type": "text", "id": "body", "label": "Body" },
+    { "type": "range", "id": "limit", "label": "Maximum products", "min": 1, "max": 8, "step": 1, "default": 3 }
+  ]
+}
+{% endschema %}
