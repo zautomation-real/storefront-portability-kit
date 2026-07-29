@@ -16,6 +16,12 @@ export function productZoomMode(brand) {
   return productZoomModes.has(candidate) ? candidate : "click";
 }
 
+export function productMediaFocalPoint(brand) {
+  const candidate = Number(brand?.presentation?.productMediaHorizontalFocus);
+  const horizontal = Number.isFinite(candidate) && candidate >= 0 && candidate <= 100 ? candidate : 50;
+  return `${horizontal}% center`;
+}
+
 export async function readJson(file) {
   return JSON.parse(await readFile(file, "utf8"));
 }

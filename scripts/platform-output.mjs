@@ -1,4 +1,4 @@
-import { escapeHtml, productBodyHtml } from "./lib.mjs";
+import { escapeHtml, productBodyHtml, productMediaFocalPoint } from "./lib.mjs";
 
 function sectionId(index, type) {
   return `${String(index + 1).padStart(2, "0")}_${type.replaceAll("-", "_")}`;
@@ -333,7 +333,7 @@ export function wooProductCsv(brand, catalog) {
 }
 
 export function brandCss(brand) {
-  return `:root{--ink:${brand.palette.ink};--paper:${brand.palette.paper};--muted:${brand.palette.muted};--accent:${brand.palette.accent};--accent-contrast:${brand.palette.accentContrast};--line:${brand.palette.line};--surface:${brand.palette.surface};--soft:${brand.palette.soft};--font-display:${brand.typography.display};--font-body:${brand.typography.body};}`;
+  return `:root{--ink:${brand.palette.ink};--paper:${brand.palette.paper};--muted:${brand.palette.muted};--accent:${brand.palette.accent};--accent-contrast:${brand.palette.accentContrast};--line:${brand.palette.line};--surface:${brand.palette.surface};--soft:${brand.palette.soft};--font-display:${brand.typography.display};--font-body:${brand.typography.body};--product-media-focus:${productMediaFocalPoint(brand)};}`;
 }
 
 function liquidVariantCondition(product, rule) {
@@ -371,22 +371,6 @@ export function shopifyFixtureImageSnippet(catalog) {
 ${cases}
 {% endcase %}
 {% if fixture_variant_asset != blank %}<img src="{{ fixture_variant_asset | asset_url }}" alt="{{ fixture_variant_alt | escape }}" width="900" height="1100" loading="{{ fixture_loading }}">{% elsif product.featured_image %}{{ product.featured_image | image_url: width: 1400 | image_tag: widths: '500,800,1100,1400', loading: fixture_loading, alt: product.title }}{% elsif fixture_base_asset != blank %}<img src="{{ fixture_base_asset | asset_url }}" alt="{{ fixture_base_alt | escape }}" width="900" height="1100" loading="{{ fixture_loading }}">{% else %}{{ 'product-1' | placeholder_svg_tag }}{% endif %}`;
-}
-
-export function shopifyFixtureAlternateImageSnippet(catalog) {
-  const cases = catalog.products.map((product) => {
-    const alternate = (product.variantMedia || []).find((rule) => rule.image && rule.image !== product.image);
-    if (!alternate) return "";
-    const asset = `brand-${alternate.image.split("/").at(-1)}`;
-    return `  {% when '${product.id}' %}\n    {% assign fixture_alternate_asset = '${asset}' %}\n    {% assign fixture_alternate_alt = ${JSON.stringify(alternate.alt || product.name)} %}`;
-  }).filter(Boolean).join("\n");
-  return `{% assign fixture_alternate_asset = blank %}
-{% assign fixture_alternate_alt = product.title %}
-{% assign fixture_alternate_loading = loading | default: 'lazy' %}
-{% case product.handle %}
-${cases}
-{% endcase %}
-{% if fixture_alternate_asset != blank %}<img src="{{ fixture_alternate_asset | asset_url }}" alt="{{ fixture_alternate_alt | escape }}" width="1600" height="1000" loading="{{ fixture_alternate_loading }}" data-product-alternate-image>{% endif %}`;
 }
 
 export function shopifyVariantMediaJsonSnippet(catalog) {

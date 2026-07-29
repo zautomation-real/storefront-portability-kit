@@ -10,32 +10,22 @@
   endfor
 %}
 
-{% capture fixture_alternate_media %}{% render 'fixture-product-alternate-image', product: product, loading: 'lazy' %}{% endcapture %}
-{% assign fixture_alternate_media = fixture_alternate_media | strip %}
-
 <section class="main-product" id="MainProduct-{{ section.id }}">
-  <div class="product-media-gallery{% if fixture_alternate_media != blank %} product-media-gallery--extended{% endif %}">
-    <div
-      class="media main-product__media product-zoom"
-      data-product-zoom
-      data-product-zoom-mode="__PRODUCT_ZOOM_MODE__"
-      tabindex="0"
-      role="button"
-      aria-pressed="false"
-      aria-label="Zoom image for {{ product.title | escape }}"
-      data-zoom-label="Zoom image for {{ product.title | escape }}"
-      data-unzoom-label="Exit image zoom for {{ product.title | escape }}"
-    >
-      {% if selected_variant.featured_image %}
-        {{ selected_variant.featured_image | image_url: width: 2200 | image_tag: widths: '500,800,1100,1400,1800,2200', loading: 'eager', fetchpriority: 'high', draggable: 'false' }}
-      {% else %}
-        {% render 'fixture-product-image', product: product, variant: selected_variant, loading: 'eager' %}
-      {% endif %}
-    </div>
-    {% if fixture_alternate_media != blank %}
-      <div class="media product-media-gallery__alternate">
-        {{ fixture_alternate_media }}
-      </div>
+  <div
+    class="media main-product__media product-zoom"
+    data-product-zoom
+    data-product-zoom-mode="__PRODUCT_ZOOM_MODE__"
+    tabindex="0"
+    role="button"
+    aria-pressed="false"
+    aria-label="Zoom image for {{ product.title | escape }}"
+    data-zoom-label="Zoom image for {{ product.title | escape }}"
+    data-unzoom-label="Exit image zoom for {{ product.title | escape }}"
+  >
+    {% if selected_variant.featured_image %}
+      {{ selected_variant.featured_image | image_url: width: 2200 | image_tag: widths: '500,800,1100,1400,1800,2200', loading: 'eager', fetchpriority: 'high', draggable: 'false' }}
+    {% else %}
+      {% render 'fixture-product-image', product: product, variant: selected_variant, loading: 'eager' %}
     {% endif %}
   </div>
 
@@ -238,7 +228,6 @@
     const variantsElement = root.querySelector("[data-product-variants]");
     const fixtureMediaElement = root.querySelector("[data-fixture-variant-media]");
     const mediaImage = root.querySelector(".main-product__media img");
-    const alternateMediaImage = root.querySelector("[data-product-alternate-image]");
     const price = root.querySelector("[data-product-price]");
     const compare = root.querySelector("[data-product-compare]");
     const submit = form?.querySelector("[data-product-submit]");
@@ -303,15 +292,6 @@
       if (media.width) mediaImage.width = media.width;
       if (media.height) mediaImage.height = media.height;
 
-      if (alternateMediaImage) {
-        const selectedFixture = fixtureMediaForVariant(variant);
-        const alternate = [fixtureMedia.fallback, ...(fixtureMedia.rules || [])]
-          .find((candidate) => candidate?.src && candidate.src !== selectedFixture?.src);
-        if (alternate?.src) {
-          alternateMediaImage.src = alternate.src;
-          alternateMediaImage.alt = alternate.alt || submit.dataset.productTitle || "";
-        }
-      }
     };
 
     const updateEngraving = () => {

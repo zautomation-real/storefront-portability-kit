@@ -26,7 +26,8 @@
       "type": "object",
       "properties": {
         "layout": { "enum": ["standard", "editorial", "technical"] },
-        "productZoom": { "enum": ["click", "hover"] }
+        "productZoom": { "enum": ["click", "hover"] },
+        "productMediaHorizontalFocus": { "type": "number", "minimum": 0, "maximum": 100 }
       },
       "additionalProperties": false
     },
