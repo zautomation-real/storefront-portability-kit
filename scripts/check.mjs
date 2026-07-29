@@ -64,6 +64,11 @@ for (const entry of brands) {
   for (const key of ["displayName", "vertical", "locale", "currency", "announcement"]) {
     if (!isNonEmpty(brand[key])) fail(id, `${key} is required`);
   }
+  if (brand.presentation != null && (typeof brand.presentation !== "object" || Array.isArray(brand.presentation))) {
+    fail(id, "presentation must be an object");
+  } else if (brand.presentation?.layout != null && !["standard", "editorial", "technical"].includes(brand.presentation.layout)) {
+    fail(id, `unsupported presentation.layout ${brand.presentation.layout}`);
+  }
   for (const token of ["ink", "paper", "muted", "accent", "accentContrast", "line", "surface", "soft"]) {
     if (!isNonEmpty(brand.palette?.[token])) fail(id, `palette.${token} is required`);
   }

@@ -1,0 +1,35 @@
+<section class="not-found">
+  <div class="not-found__code" aria-hidden="true">404</div>
+  <div class="not-found__content">
+    <p class="eyebrow">{{ section.settings.eyebrow | escape }}</p>
+    <h1>{{ section.settings.title | escape }}</h1>
+    <p>{{ section.settings.body | escape }}</p>
+    <form class="search-form" action="{{ routes.search_url }}" method="get" role="search">
+      <input type="hidden" name="type" value="product">
+      <input type="hidden" name="options[prefix]" value="last">
+      <label for="Search404-{{ section.id }}"><span>{{ section.settings.search_label | escape }}</span></label>
+      <div class="search-form__controls">
+        <input id="Search404-{{ section.id }}" type="search" name="q" required autocomplete="off">
+        <button class="button" type="submit">{{ section.settings.search_button | escape }}</button>
+      </div>
+    </form>
+    <div class="actions">
+      <a class="button" href="{{ routes.root_url }}">{{ section.settings.home_label | escape }}</a>
+      <a class="button button--quiet" href="{{ routes.all_products_collection_url }}">{{ section.settings.catalog_label | escape }}</a>
+    </div>
+  </div>
+</section>
+{% schema %}
+{
+  "name": "404 page",
+  "settings": [
+    { "type": "text", "id": "eyebrow", "label": "Eyebrow", "default": "Page not found" },
+    { "type": "text", "id": "title", "label": "Title", "default": "This page has moved." },
+    { "type": "textarea", "id": "body", "label": "Body", "default": "Search the store or return to the collection." },
+    { "type": "text", "id": "search_label", "label": "Search label", "default": "Search products" },
+    { "type": "text", "id": "search_button", "label": "Search button", "default": "Search" },
+    { "type": "text", "id": "home_label", "label": "Home link", "default": "Return home" },
+    { "type": "text", "id": "catalog_label", "label": "Catalog link", "default": "Browse catalog" }
+  ]
+}
+{% endschema %}

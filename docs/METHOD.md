@@ -12,7 +12,7 @@ Each brand pack starts with the decision a customer is trying to make. That dete
 
 ## 2. Keep portable facts portable
 
-Brand language, navigation, product fixtures, tokens and section order live in JSON. Options may carry price modifiers in minor currency units; the generator expands them into the same Cartesian variant set on both platforms. Shared CSS and small browser behaviours use a stable class and data-attribute contract.
+Brand language, navigation, product fixtures, tokens, a generic presentation preset and section order live in JSON. Options may carry price modifiers in minor currency units; the generator expands them into the same Cartesian variant set on both platforms. Shared CSS and small browser behaviours use a stable class and data-attribute contract. Presentation presets describe composition (`standard`, `editorial` or `technical`) without coupling the public method to a private brand identity.
 
 ## 3. Keep commerce native
 

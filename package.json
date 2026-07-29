@@ -13,6 +13,7 @@
     "preview": "node scripts/serve.mjs",
     "package:releases": "node scripts/package-releases.mjs",
     "release": "npm run validate && npm run package:releases",
+    "shopify:hydrate-media": "node scripts/hydrate-shopify-media.mjs",
     "test": "node --test",
     "test:playground": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-playground.ps1",
     "theme:check": "node scripts/theme-check.mjs",

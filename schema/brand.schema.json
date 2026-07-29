@@ -22,6 +22,13 @@
     "vertical": { "type": "string", "minLength": 1 },
     "locale": { "type": "string", "minLength": 2 },
     "currency": { "type": "string", "pattern": "^[A-Z]{3}$" },
+    "presentation": {
+      "type": "object",
+      "properties": {
+        "layout": { "enum": ["standard", "editorial", "technical"] }
+      },
+      "additionalProperties": false
+    },
     "palette": {
       "type": "object",
       "required": ["ink", "paper", "muted", "accent", "accentContrast", "line"],

@@ -1,2 +1,28 @@
-<section class="section"><div class="section-heading"><p class="eyebrow">Collection</p><h1>{{ collection.title | escape }}</h1><p class="section-intro">{{ collection.description | strip_html }}</p></div><div class="product-grid">{% paginate collection.products by 24 %}{% assign visible_products = 0 %}{% for product in collection.products %}{% if settings.catalog_vendor == blank or product.vendor == settings.catalog_vendor %}{% render 'product-card', product: product %}{% assign visible_products = visible_products | plus: 1 %}{% endif %}{% endfor %}{% if visible_products == 0 %}<p class="empty-state">There are no products in this collection yet.</p>{% endif %}<div class="pagination">{{ paginate | default_pagination }}</div>{% endpaginate %}</div></section>
-{% schema %}{ "name": "Main collection", "settings": [] }{% endschema %}
+<section class="section">
+  <div class="section-heading">
+    <p class="eyebrow">Collection</p>
+    <h1>{{ collection.title | escape }}</h1>
+    {% if collection.description != blank %}<p class="section-intro">{{ collection.description | strip_html }}</p>{% endif %}
+  </div>
+  {% paginate collection.products by 24 %}
+    <div class="product-grid">
+      {% assign visible_products = 0 %}
+      {% for product in collection.products %}
+        {% if settings.catalog_vendor == blank or product.vendor == settings.catalog_vendor %}
+          {% render 'product-card', product: product %}
+          {% assign visible_products = visible_products | plus: 1 %}
+        {% endif %}
+      {% endfor %}
+      {% if visible_products == 0 %}
+        <div class="empty-state">
+          <p>There are no products in this collection yet.</p>
+          <a class="text-button" href="{{ routes.root_url }}">Return home</a>
+        </div>
+      {% endif %}
+      {% if paginate.pages > 1 %}<div class="pagination">{{ paginate | default_pagination }}</div>{% endif %}
+    </div>
+  {% endpaginate %}
+</section>
+{% schema %}
+{ "name": "Main collection", "settings": [] }
+{% endschema %}

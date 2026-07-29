@@ -13,6 +13,9 @@
       { "type": "text", "id": "brand_name", "label": "Brand name", "default": "__BRAND_NAME__" },
       { "type": "text", "id": "catalog_vendor", "label": "Catalog vendor", "info": "When set, collection and search views only show products from this vendor.", "default": "__BRAND_NAME__" },
       { "type": "link_list", "id": "primary_menu", "label": "Primary menu" },
+      { "type": "image_picker", "id": "brand_logo", "label": "Brand logo", "info": "Used in structured data when available." },
+      { "type": "image_picker", "id": "favicon", "label": "Favicon", "info": "Use a square image for the browser tab icon." },
+      { "type": "image_picker", "id": "social_image", "label": "Social sharing image", "info": "Fallback image for social previews when the current page has no featured image." },
       { "type": "color", "id": "theme_color", "label": "Browser theme colour", "default": "__THEME_COLOR__" }
     ]
   }

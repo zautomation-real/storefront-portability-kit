@@ -29,6 +29,10 @@
       {% if form.errors %}aria-invalid="true" aria-describedby="NewsletterError-{{ section.id }}"{% endif %}
     >
     <button class="button" type="submit">{{ section.settings.button_label | escape }}</button>
+    <p class="newsletter__privacy">
+      {{ section.settings.privacy_text | escape }}
+      {% if shop.privacy_policy != blank %}<a href="{{ shop.privacy_policy.url }}">{{ section.settings.privacy_link_label | escape }}</a>{% endif %}
+    </p>
   {% endform %}
 </section>
 {% schema %}
@@ -41,7 +45,9 @@
     { "type": "textarea", "id": "body", "label": "Body" },
     { "type": "text", "id": "email_label", "label": "Email label", "default": "Email address" },
     { "type": "text", "id": "button_label", "label": "Button label", "default": "Join the list" },
-    { "type": "text", "id": "success_text", "label": "Success message", "default": "Thank you. You are on the list." }
+    { "type": "text", "id": "success_text", "label": "Success message", "default": "Thank you. You are on the list." },
+    { "type": "textarea", "id": "privacy_text", "label": "Privacy notice", "default": "We use your email to send store news and offers. Unsubscribe at any time." },
+    { "type": "text", "id": "privacy_link_label", "label": "Privacy policy link", "default": "Privacy policy" }
   ],
   "presets": [{ "name": "Newsletter" }]
 }

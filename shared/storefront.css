@@ -123,30 +123,30 @@ button:disabled,[aria-disabled="true"]{cursor:not-allowed;opacity:.52;transform:
 .preview-cart-summary{display:flex;align-items:center;justify-content:flex-end;gap:1rem;padding-top:2rem}.preview-cart-summary p{margin-right:auto;font-size:1.1rem}
 .preview-cart-summary .preview-cart-note{max-width:24rem;margin:0;font-size:.78rem;opacity:.68;text-align:right}
 
-/* Each brand changes the composition as well as the tokens. The commerce contract stays shared. */
-body[data-brand="vale-and-vow"] .wordmark{letter-spacing:.13em}
-body[data-brand="vale-and-vow"] .hero{grid-template-columns:1.08fr .92fr;background:var(--ink);color:var(--paper)}
-body[data-brand="vale-and-vow"] .hero__media{order:-1}
-body[data-brand="vale-and-vow"] .hero h1{max-width:10ch;font-style:italic;font-weight:400;letter-spacing:-.055em}
-body[data-brand="vale-and-vow"] .hero .button{border-color:var(--paper);background:var(--paper);color:var(--ink)}
-body[data-brand="vale-and-vow"] .hero .button--quiet{background:transparent;color:var(--paper)}
-body[data-brand="vale-and-vow"] .product-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
-body[data-brand="vale-and-vow"] .product-card__media{aspect-ratio:1/1.12}
-body[data-brand="vale-and-vow"] .editorial{grid-template-columns:1.15fr .85fr}
-body[data-brand="vale-and-vow"] .editorial__copy{order:2}
-body[data-brand="vale-and-vow"] .testimonial-grid figure:first-child{background:var(--ink);color:var(--paper)}
+/* Layout presets change composition without coupling the shared method to a private brand. */
+body[data-layout="editorial"] .wordmark{letter-spacing:.13em}
+body[data-layout="editorial"] .hero{grid-template-columns:1.08fr .92fr;background:var(--ink);color:var(--paper)}
+body[data-layout="editorial"] .hero__media{order:-1}
+body[data-layout="editorial"] .hero h1{max-width:10ch;font-style:italic;font-weight:400;letter-spacing:-.055em}
+body[data-layout="editorial"] .hero .button{border-color:var(--paper);background:var(--paper);color:var(--ink)}
+body[data-layout="editorial"] .hero .button--quiet{background:transparent;color:var(--paper)}
+body[data-layout="editorial"] .product-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+body[data-layout="editorial"] .product-card__media{aspect-ratio:1/1.12}
+body[data-layout="editorial"] .editorial{grid-template-columns:1.15fr .85fr}
+body[data-layout="editorial"] .editorial__copy{order:2}
+body[data-layout="editorial"] .testimonial-grid figure:first-child{background:var(--ink);color:var(--paper)}
 
-body[data-brand="cedar-90"] .wordmark{font-weight:900;letter-spacing:.12em}
-body[data-brand="cedar-90"] .hero{grid-template-columns:minmax(26rem,.72fr) minmax(0,1.28fr)}
-body[data-brand="cedar-90"] .hero h1{text-transform:uppercase;font-size:clamp(3rem,5vw,6.2rem);letter-spacing:-.065em}
-body[data-brand="cedar-90"] .button{border-color:var(--accent);background:var(--accent);color:var(--accent-contrast)}
-body[data-brand="cedar-90"] .button--quiet{border-color:var(--ink);background:transparent;color:var(--ink)}
-body[data-brand="cedar-90"] .product-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
-body[data-brand="cedar-90"] .product-card__media{aspect-ratio:4/3}
-body[data-brand="cedar-90"] .comparison{background:var(--ink);color:var(--paper)}
-body[data-brand="cedar-90"] .comparison-row{border-color:color-mix(in srgb,var(--paper) 28%,transparent)}
-body[data-brand="cedar-90"] .comparison-table{border-color:color-mix(in srgb,var(--paper) 28%,transparent)}
-body[data-brand="cedar-90"] .comparison-row strong{color:#e7a47f}
+body[data-layout="technical"] .wordmark{font-weight:900;letter-spacing:.12em}
+body[data-layout="technical"] .hero{grid-template-columns:minmax(26rem,.72fr) minmax(0,1.28fr)}
+body[data-layout="technical"] .hero h1{text-transform:uppercase;font-size:clamp(3rem,5vw,6.2rem);letter-spacing:-.065em}
+body[data-layout="technical"] .button{border-color:var(--accent);background:var(--accent);color:var(--accent-contrast)}
+body[data-layout="technical"] .button--quiet{border-color:var(--ink);background:transparent;color:var(--ink)}
+body[data-layout="technical"] .product-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+body[data-layout="technical"] .product-card__media{aspect-ratio:4/3}
+body[data-layout="technical"] .comparison{background:var(--ink);color:var(--paper)}
+body[data-layout="technical"] .comparison-row{border-color:color-mix(in srgb,var(--paper) 28%,transparent)}
+body[data-layout="technical"] .comparison-table{border-color:color-mix(in srgb,var(--paper) 28%,transparent)}
+body[data-layout="technical"] .comparison-row strong{color:var(--technical-highlight,var(--accent))}
 :focus-visible{outline:3px solid var(--accent);outline-offset:4px}
 .newsletter :focus-visible{outline-color:var(--accent-contrast)}
 @media (max-width:900px){.site-header{grid-template-columns:1fr auto auto;gap:1rem}
@@ -173,10 +173,10 @@ body[data-brand="cedar-90"] .comparison-row strong{color:#e7a47f}
 .site-footer nav{justify-content:flex-start}
 .comparison-row{grid-template-columns:1fr;gap:.5rem}.comparison-row strong{text-align:left}
 .preview-product{grid-template-columns:1fr}.preview-product__media{min-height:65svh}.preview-product__content{padding:4rem 1.25rem}.preview-cart-line{grid-template-columns:5rem 1fr}.preview-cart-line>label,.preview-cart-line>strong{grid-column:2}.preview-cart-summary{align-items:stretch;flex-direction:column}.preview-cart-summary p{margin-right:0}.preview-cart-summary .preview-cart-note{text-align:left}
-body[data-brand="vale-and-vow"] .hero,body[data-brand="cedar-90"] .hero{grid-template-columns:1fr}
-body[data-brand="vale-and-vow"] .hero__media{order:-1}
-body[data-brand="vale-and-vow"] .editorial{grid-template-columns:minmax(0,1fr)}
-body[data-brand="vale-and-vow"] .editorial__copy{order:0}
+body[data-layout="editorial"] .hero,body[data-layout="technical"] .hero{grid-template-columns:1fr}
+body[data-layout="editorial"] .hero__media{order:-1}
+body[data-layout="editorial"] .editorial{grid-template-columns:minmax(0,1fr)}
+body[data-layout="editorial"] .editorial__copy{order:0}
 }
 @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{scroll-behavior:auto!important;transition-duration:.01ms!important;animation-duration:.01ms!important;animation-iteration-count:1!important}.media img{transform:none!important}}
 @media (max-width:600px){.announcement{font-size:.64rem}
@@ -199,5 +199,5 @@ body[data-brand="vale-and-vow"] .editorial__copy{order:0}
 .newsletter{padding:4.5rem 1rem}
 .newsletter form{grid-template-columns:1fr}
 .site-footer{padding:2.5rem 1rem}
-body[data-brand="vale-and-vow"] .product-grid,body[data-brand="cedar-90"] .product-grid{grid-template-columns:1fr}
+body[data-layout="editorial"] .product-grid,body[data-layout="technical"] .product-grid{grid-template-columns:1fr}
 }

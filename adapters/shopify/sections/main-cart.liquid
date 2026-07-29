@@ -1,8 +1,10 @@
 <section class="section cart-page">
   <div class="section-heading"><p class="eyebrow">Shopping bag</p><h1>{{ section.settings.title | escape }}</h1></div>
   {% if cart.item_count == 0 %}
-    <p>{{ section.settings.empty_text | escape }}</p>
-    <a class="button" href="{{ routes.root_url }}#shop">{{ section.settings.continue_label | escape }}</a>
+    <div class="empty-state empty-state--standalone">
+      <p>{{ section.settings.empty_text | escape }}</p>
+      <a class="button" href="{{ routes.root_url }}#shop">{{ section.settings.continue_label | escape }}</a>
+    </div>
   {% else %}
     <form action="{{ routes.cart_url }}" method="post">
       <div class="cart-lines">

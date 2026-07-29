@@ -3,5 +3,9 @@ dist/
 .DS_Store
 *.log
 .shopify/
+.shopify-media/
 .wp-env.json
+.env
+.env.*
+!.env.example
 **/assets/*-source.png

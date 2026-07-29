@@ -54,6 +54,25 @@ export function shopifyIndexTemplate(brand) {
   return JSON.stringify({ sections, order }, null, 2);
 }
 
+export function shopifyPasswordTemplate(brand) {
+  return JSON.stringify({
+    sections: {
+      main: {
+        type: "main-password",
+        settings: {
+          eyebrow: "Private preview",
+          title: brand.displayName,
+          body: "This storefront is being prepared. Enter the preview password to continue.",
+          fallback_asset: `brand-${brand.hero.media.split("/").at(-1)}`,
+          password_label: "Store password",
+          button_label: "Enter store"
+        }
+      }
+    },
+    order: ["main"]
+  }, null, 2);
+}
+
 function csvCell(value) {
   const string = value == null ? "" : String(value);
   return /[",\n]/.test(string) ? `"${string.replaceAll('"', '""')}"` : string;
@@ -221,16 +240,26 @@ ${cases}
 {% if fixture_asset != blank %}<img src="{{ fixture_asset | asset_url }}" alt="{{ product.title | escape }}" width="900" height="1100" loading="{{ loading | default: 'lazy' }}">{% else %}{{ 'product-1' | placeholder_svg_tag }}{% endif %}`;
 }
 
+function shopifyDestination(href) {
+  const destination = String(href || "").trim();
+  if (destination.startsWith("#")) return `{{ routes.root_url }}${escapeHtml(destination)}`;
+  if (destination.startsWith("/") || /^(?:https?:|mailto:|tel:)/i.test(destination)) return escapeHtml(destination);
+  return `{{ routes.root_url }}${escapeHtml(destination)}`;
+}
+
 export function shopifyFallbackNavigationSnippet(brand) {
-  return brand.navigation.map((item) => {
-    const href = item.href.startsWith("#") ? `{{ routes.root_url }}${item.href}` : escapeHtml(item.href);
-    return `<a href="${href}">${escapeHtml(item.label)}</a>`;
-  }).join("\n");
+  const navigation = brand.navigation.map((item) => `<a href="${shopifyDestination(item.href)}">${escapeHtml(item.label)}</a>`);
+  const destinations = brand.navigation.map((item) => String(item.href || "").toLowerCase());
+  const hasCatalogLink = destinations.some((href) => href.startsWith("#shop") || href.includes("collections") || href.includes("products"));
+  const hasSearchLink = destinations.some((href) => href.includes("search"));
+
+  if (!hasCatalogLink) navigation.push('<a href="{{ routes.all_products_collection_url }}">Catalog</a>');
+  if (!hasSearchLink) navigation.push('<a href="{{ routes.search_url }}">Search</a>');
+  return navigation.join("\n");
 }
 
 export function shopifyFallbackFooterSnippet(brand) {
   return (brand.footer?.links || []).map((item) => {
-    const href = item.href.startsWith("#") ? `{{ routes.root_url }}${item.href}` : escapeHtml(item.href);
-    return `<a href="${href}">${escapeHtml(item.label)}</a>`;
+    return `<a href="${shopifyDestination(item.href)}">${escapeHtml(item.label)}</a>`;
   }).join("\n");
 }

@@ -16,7 +16,7 @@ The repository includes one deliberately neutral fixture, `Field Supply`, so the
 
 ## What remains native
 
-- Shopify Liquid, JSON templates, theme settings, product forms and cart endpoints;
+- Shopify Liquid, JSON templates, theme settings, product forms, cart endpoints, branded password and 404 states, and social/structured metadata;
 - WordPress PHP, WooCommerce products, variations, Store API and checkout when the authorised extension is present;
 - inventory, customers, payments, tax and order state on the platform that owns them.
 

@@ -3,6 +3,13 @@ import path from "node:path";
 
 export const root = path.resolve(import.meta.dirname, "..");
 
+const presentationLayouts = new Set(["standard", "editorial", "technical"]);
+
+export function presentationLayout(brand) {
+  const candidate = brand?.presentation?.layout;
+  return presentationLayouts.has(candidate) ? candidate : "standard";
+}
+
 export async function readJson(file) {
   return JSON.parse(await readFile(file, "utf8"));
 }

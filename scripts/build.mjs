@@ -1,8 +1,8 @@
 import { rm, stat } from "node:fs/promises";
 import path from "node:path";
-import { assertNoBuildTokens, copyDirectoryFlat, copyIfPresent, parseArgs, readJson, replaceTokens, resetDir, resolveWooCommercePaths, resolveWorkspacePaths, root, writeText } from "./lib.mjs";
+import { assertNoBuildTokens, copyDirectoryFlat, copyIfPresent, parseArgs, presentationLayout, readJson, replaceTokens, resetDir, resolveWooCommercePaths, resolveWorkspacePaths, root, writeText } from "./lib.mjs";
 import { renderCartPreview, renderPreview, renderProductPreview } from "./render-preview.mjs";
-import { brandCss, shopifyFallbackFooterSnippet, shopifyFallbackNavigationSnippet, shopifyFixtureImageSnippet, shopifyIndexTemplate, shopifyProductCsv, wooProductCsv } from "./platform-output.mjs";
+import { brandCss, shopifyFallbackFooterSnippet, shopifyFallbackNavigationSnippet, shopifyFixtureImageSnippet, shopifyIndexTemplate, shopifyPasswordTemplate, shopifyProductCsv, wooProductCsv } from "./platform-output.mjs";
 
 const args = parseArgs(process.argv.slice(2));
 const brandId = args.brand || "example-store";
@@ -50,6 +50,7 @@ async function buildAdapter(name, source = path.join(root, "adapters", name)) {
   if (name === "shopify") {
     await copyDirectoryFlat(path.join(brandDir, "assets"), path.join(output, "assets"), "brand-");
     await writeText(path.join(output, "templates", "index.json"), shopifyIndexTemplate(brand));
+    await writeText(path.join(output, "templates", "password.json"), shopifyPasswordTemplate(brand));
     await writeText(path.join(output, "snippets", "fixture-product-image.liquid"), shopifyFixtureImageSnippet(catalog));
     await writeText(path.join(output, "snippets", "fallback-navigation.liquid"), shopifyFallbackNavigationSnippet(brand));
     await writeText(path.join(output, "snippets", "fallback-footer.liquid"), shopifyFallbackFooterSnippet(brand));
@@ -66,7 +67,9 @@ async function buildAdapter(name, source = path.join(root, "adapters", name)) {
     "__ANNOUNCEMENT__": brand.announcement || "",
     "__FOOTER_NOTE__": brand.footer?.note || "",
     "__BRAND_ID__": brand.id,
-    "__THEME_COLOR__": brand.palette.ink
+    "__LAYOUT_PRESET__": presentationLayout(brand),
+    "__THEME_COLOR__": brand.palette.ink,
+    "__SOCIAL_IMAGE_ASSET__": `brand-${brand.hero.media.split("/").at(-1)}`
   });
   await assertNoBuildTokens(output);
 }

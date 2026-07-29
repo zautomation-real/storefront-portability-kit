@@ -1,4 +1,4 @@
-import { escapeHtml, formatMoney } from "./lib.mjs";
+import { escapeHtml, formatMoney, presentationLayout } from "./lib.mjs";
 
 const action = (item, className = "button") =>
   `<a class="${className}" href="${escapeHtml(item.href)}">${escapeHtml(item.label)}</a>`;
@@ -93,6 +93,7 @@ function renderSection(section, brand, catalog) {
 
 export function renderPreview(brand, catalog) {
   const brandStyle = `:root{--ink:${brand.palette.ink};--paper:${brand.palette.paper};--muted:${brand.palette.muted};--accent:${brand.palette.accent};--accent-contrast:${brand.palette.accentContrast};--line:${brand.palette.line};--surface:${brand.palette.surface};--soft:${brand.palette.soft};--font-display:${brand.typography.display};--font-body:${brand.typography.body};}`;
+  const layout = presentationLayout(brand);
   return `<!doctype html>
 <html lang="${escapeHtml(brand.locale.split("-")[0])}">
 <head>
@@ -104,7 +105,7 @@ export function renderPreview(brand, catalog) {
   <link rel="stylesheet" href="storefront.css">
   <script src="storefront.js" defer></script>
 </head>
-<body data-brand="${escapeHtml(brand.id)}" data-root="" data-locale="${escapeHtml(brand.locale)}" data-currency="${escapeHtml(brand.currency)}">
+<body data-brand="${escapeHtml(brand.id)}" data-layout="${escapeHtml(layout)}" data-root="" data-locale="${escapeHtml(brand.locale)}" data-currency="${escapeHtml(brand.currency)}">
   <a class="skip-link" href="#main">Skip to content</a>
   <div class="announcement">${escapeHtml(brand.announcement)}</div>
   <header class="site-header">
@@ -144,6 +145,7 @@ export function renderPreview(brand, catalog) {
 
 function nestedDocument(brand, { rootPath, title, description, content, bodyClass = "" }) {
   const navigation = brand.navigation.map((item) => `<a href="${rootPath}index.html${escapeHtml(item.href)}">${escapeHtml(item.label)}</a>`).join("");
+  const layout = presentationLayout(brand);
   return `<!doctype html>
 <html lang="${escapeHtml(brand.locale.split("-")[0])}">
 <head>
@@ -155,7 +157,7 @@ function nestedDocument(brand, { rootPath, title, description, content, bodyClas
   <link rel="stylesheet" href="${rootPath}storefront.css">
   <script src="${rootPath}storefront.js" defer></script>
 </head>
-<body class="${bodyClass}" data-brand="${escapeHtml(brand.id)}" data-root="${rootPath}" data-locale="${escapeHtml(brand.locale)}" data-currency="${escapeHtml(brand.currency)}">
+<body class="${bodyClass}" data-brand="${escapeHtml(brand.id)}" data-layout="${escapeHtml(layout)}" data-root="${rootPath}" data-locale="${escapeHtml(brand.locale)}" data-currency="${escapeHtml(brand.currency)}">
   <a class="skip-link" href="#main">Skip to content</a>
   <div class="announcement">${escapeHtml(brand.announcement)}</div>
   <header class="site-header">

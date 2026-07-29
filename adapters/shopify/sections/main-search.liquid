@@ -1,8 +1,52 @@
-<section class="section">
-  <div class="section-heading"><p class="eyebrow">Search</p><h1>{{ section.settings.title | escape }}</h1></div>
-  <form class="search-form" action="{{ routes.search_url }}" method="get" role="search"><input type="hidden" name="type" value="product"><input type="hidden" name="options[prefix]" value="last"><label><span>Search the store</span><input type="search" name="q" value="{{ search.terms | escape }}"></label><button class="button" type="submit">Search</button></form>
-  {% if search.performed %}<div class="product-grid">{% paginate search.results by 24 %}{% assign matched_products = 0 %}{% for item in search.results %}{% if item.object_type == 'product' %}{% if settings.catalog_vendor == blank or item.vendor == settings.catalog_vendor %}{% render 'product-card', product: item %}{% assign matched_products = matched_products | plus: 1 %}{% endif %}{% endif %}{% endfor %}{% if matched_products == 0 %}<p class="empty-state">No products matched that search.</p>{% endif %}<div class="pagination">{{ paginate | default_pagination }}</div>{% endpaginate %}</div>{% endif %}
+<section class="section search-page">
+  <div class="section-heading">
+    <p class="eyebrow">Search</p>
+    <h1>{{ section.settings.title | escape }}</h1>
+  </div>
+  <form class="search-form" action="{{ routes.search_url }}" method="get" role="search">
+    <input type="hidden" name="type" value="product">
+    <input type="hidden" name="options[prefix]" value="last">
+    <label for="SearchInput-{{ section.id }}"><span>{{ section.settings.label | escape }}</span></label>
+    <div class="search-form__controls">
+      <input id="SearchInput-{{ section.id }}" type="search" name="q" value="{{ search.terms | escape }}" autocomplete="off">
+      <button class="button" type="submit">{{ section.settings.button_label | escape }}</button>
+    </div>
+  </form>
+  {% if search.performed %}
+    <div class="product-grid">
+      {% paginate search.results by 24 %}
+        {% assign matched_products = 0 %}
+        {% for item in search.results %}
+          {% if item.object_type == 'product' %}
+            {% if settings.catalog_vendor == blank or item.vendor == settings.catalog_vendor %}
+              {% render 'product-card', product: item %}
+              {% assign matched_products = matched_products | plus: 1 %}
+            {% endif %}
+          {% endif %}
+        {% endfor %}
+        {% if matched_products == 0 %}
+          <div class="empty-state">
+            <p>{{ section.settings.empty_text | escape }}</p>
+            <a class="text-button" href="{{ routes.all_products_collection_url }}">{{ section.settings.catalog_label | escape }}</a>
+          </div>
+        {% endif %}
+        {% if paginate.pages > 1 %}<div class="pagination">{{ paginate | default_pagination }}</div>{% endif %}
+      {% endpaginate %}
+    </div>
+  {% else %}
+    <p class="search-page__prompt">{{ section.settings.prompt | escape }}</p>
+  {% endif %}
 </section>
 {% schema %}
-{ "name": "Main search", "settings": [{ "type": "text", "id": "title", "label": "Title", "default": "Find a product" }] }
+{
+  "name": "Main search",
+  "settings": [
+    { "type": "text", "id": "title", "label": "Title", "default": "Find a product" },
+    { "type": "text", "id": "label", "label": "Search label", "default": "Product name or category" },
+    { "type": "text", "id": "button_label", "label": "Button label", "default": "Search" },
+    { "type": "text", "id": "prompt", "label": "Prompt", "default": "Search by product name, collection or category." },
+    { "type": "text", "id": "empty_text", "label": "Empty result", "default": "No products matched that search." },
+    { "type": "text", "id": "catalog_label", "label": "Catalog link", "default": "Browse the catalog" }
+  ]
+}
 {% endschema %}

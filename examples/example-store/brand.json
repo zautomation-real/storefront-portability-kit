@@ -5,6 +5,7 @@
   "vertical": "Stationery and desk objects",
   "locale": "en-GB",
   "currency": "GBP",
+  "presentation": { "layout": "standard" },
   "announcement": "Free standard delivery on orders over £45",
   "palette": {
     "ink": "#1f2a2a",

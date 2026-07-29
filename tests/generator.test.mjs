@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
+import { presentationLayout } from "../scripts/lib.mjs";
 import { renderProductPreview } from "../scripts/render-preview.mjs";
-import { combineShopifyProductCsv, productVariants, shopifyFallbackFooterSnippet, shopifyIndexTemplate, shopifyProductCsv, wooProductCsv } from "../scripts/platform-output.mjs";
+import { combineShopifyProductCsv, productVariants, shopifyFallbackFooterSnippet, shopifyFallbackNavigationSnippet, shopifyIndexTemplate, shopifyPasswordTemplate, shopifyProductCsv, wooProductCsv } from "../scripts/platform-output.mjs";
 
 const brand = {
   id: "test-store",
@@ -30,6 +31,12 @@ const product = {
     { name: "Service", values: ["Delivery", { label: "Installed", priceModifier: 3000 }] }
   ]
 };
+
+test("presentation layouts use a closed public preset vocabulary", () => {
+  assert.equal(presentationLayout({ presentation: { layout: "editorial" } }), "editorial");
+  assert.equal(presentationLayout({ presentation: { layout: "unknown" } }), "standard");
+  assert.equal(presentationLayout({}), "standard");
+});
 
 function csvRows(text) {
   const rows = [];
@@ -102,8 +109,17 @@ test("Shopify composition includes portable section settings and blocks", () => 
   assert.equal(template.sections["01_comparison"].block_order.length, 1);
 });
 
+test("Shopify password composition carries brand media without hard-coded fixture names", () => {
+  const template = JSON.parse(shopifyPasswordTemplate(brand));
+  assert.deepEqual(template.order, ["main"]);
+  assert.equal(template.sections.main.type, "main-password");
+  assert.equal(template.sections.main.settings.title, brand.displayName);
+  assert.equal(template.sections.main.settings.fallback_asset, "brand-hero.webp");
+});
+
 test("static product preview exposes every product option and dynamic pricing hooks", () => {
   const html = renderProductPreview(brand, product);
+  assert.match(html, /data-layout="standard"/);
   assert.equal((html.match(/data-product-option/g) || []).length, 2);
   assert.match(html, /data-price-modifier="1500"/);
   assert.match(html, /data-base-compare="12000"/);
@@ -114,6 +130,21 @@ test("generated footers preserve real destinations across nested and Shopify pag
   assert.match(html, /href="\.\.\/\.\.\/index\.html#shop">Shop<\/a>/);
   assert.doesNotMatch(html, /href="#">/);
   assert.match(shopifyFallbackFooterSnippet(brand), /\{\{ routes\.root_url \}\}#shop/);
+});
+
+test("Shopify fallback navigation stays useful from every template", () => {
+  const navigation = shopifyFallbackNavigationSnippet({
+    ...brand,
+    navigation: [
+      { label: "Story", href: "#story" },
+      { label: "Journal", href: "pages/journal" }
+    ]
+  });
+
+  assert.match(navigation, /href="\{\{ routes\.root_url \}\}#story"/);
+  assert.match(navigation, /href="\{\{ routes\.root_url \}\}pages\/journal"/);
+  assert.match(navigation, /routes\.all_products_collection_url/);
+  assert.match(navigation, /routes\.search_url/);
 });
 
 test("Shopify product pages resolve native variants and preserve line-item properties", async () => {
@@ -138,6 +169,37 @@ test("Shopify cart and newsletter retain native platform submissions", async () 
   assert.match(drawer, /data-cart-drawer-content/);
   assert.match(newsletter, /form 'customer'/);
   assert.match(newsletter, /contact\[accepts_marketing\]/);
+  assert.match(newsletter, /shop\.privacy_policy/);
+  assert.match(newsletter, /privacy_text/);
   assert.match(runtime, /cart\/add\.js/);
   assert.match(runtime, /sections_url/);
+});
+
+test("Shopify production shell includes password, 404 and SEO primitives", async () => {
+  const [themeLayout, passwordLayout, passwordSection, notFoundSection, settings, metaTags, structuredData] = await Promise.all([
+    readFile(new URL("../adapters/shopify/layout/theme.liquid", import.meta.url), "utf8"),
+    readFile(new URL("../adapters/shopify/layout/password.liquid", import.meta.url), "utf8"),
+    readFile(new URL("../adapters/shopify/sections/main-password.liquid", import.meta.url), "utf8"),
+    readFile(new URL("../adapters/shopify/sections/main-404.liquid", import.meta.url), "utf8"),
+    readFile(new URL("../adapters/shopify/config/settings_schema.json", import.meta.url), "utf8"),
+    readFile(new URL("../adapters/shopify/snippets/meta-tags.liquid", import.meta.url), "utf8"),
+    readFile(new URL("../adapters/shopify/snippets/structured-data.liquid", import.meta.url), "utf8")
+  ]);
+
+  assert.match(themeLayout, /settings\.brand_name/);
+  assert.match(themeLayout, /request\.page_type == 'index'/);
+  assert.match(themeLayout, /seo_title == shop\.name/);
+  assert.match(themeLayout, /__SOCIAL_IMAGE_ASSET__.*asset_url/);
+  assert.match(themeLayout, /render 'meta-tags'/);
+  assert.match(themeLayout, /render 'structured-data'/);
+  assert.match(passwordLayout, /content_for_layout/);
+  assert.match(passwordSection, /form 'storefront_password'/);
+  assert.match(notFoundSection, /routes\.all_products_collection_url/);
+  assert.match(settings, /"id": "favicon"/);
+  assert.match(settings, /"id": "social_image"/);
+  assert.match(metaTags, /twitter:card/);
+  assert.match(structuredData, /application\/ld\+json/);
+  assert.match(structuredData, /settings\.social_image/);
+  assert.match(structuredData, /__SOCIAL_IMAGE_ASSET__/);
+  assert.match(structuredData, /"@type": "Product"/);
 });
