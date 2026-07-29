@@ -19,7 +19,8 @@ button:disabled,[aria-disabled="true"]{cursor:not-allowed;opacity:.52;transform:
 .primary-nav a:hover::after,.site-footer nav a:hover::after{transform:scaleX(1);transform-origin:left}
 .menu-button{display:none}
 .cart-button,.menu-button,.cart-drawer button{justify-self:end;padding:.4rem 0;border:0;background:none;cursor:pointer}
-.cart-button,.menu-button{display:inline-flex;min-width:2.75rem;min-height:2.75rem;align-items:center;justify-content:center}
+.cart-button,.menu-button{min-width:2.75rem;min-height:2.75rem;align-items:center;justify-content:center}
+.cart-button{display:inline-flex}
 .cart-button span{display:inline-grid;place-items:center;min-width:1.4rem;height:1.4rem;margin-left:.25rem;border-radius:999px;background:var(--ink);color:var(--paper);font-size:.75rem}
 .hero{display:grid;grid-template-columns:minmax(0,.82fr) minmax(0,1.18fr);min-height:calc(100svh - 6.6rem);border-bottom:1px solid var(--line)}
 .hero__copy{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;padding:clamp(3rem,7vw,8rem)}
@@ -150,7 +151,7 @@ body[data-layout="technical"] .comparison-row strong{color:var(--technical-highl
 :focus-visible{outline:3px solid var(--accent);outline-offset:4px}
 .newsletter :focus-visible{outline-color:var(--accent-contrast)}
 @media (max-width:900px){.site-header{grid-template-columns:1fr auto auto;gap:1rem}
-.menu-button{display:block;justify-self:start;grid-column:2}
+.menu-button{display:inline-flex;justify-self:start;grid-column:2}
 .primary-nav{position:absolute;top:100%;right:0;left:0;display:none;flex-direction:column;padding:1.25rem;background:var(--paper);border-bottom:1px solid var(--line)}
 .primary-nav.is-open{display:flex}
 .hero{grid-template-columns:1fr;min-height:auto}

@@ -147,6 +147,14 @@ test("Shopify fallback navigation stays useful from every template", () => {
   assert.match(navigation, /routes\.search_url/);
 });
 
+test("mobile navigation control stays hidden on desktop", async () => {
+  const stylesheet = await readFile(new URL("../shared/storefront.css", import.meta.url), "utf8");
+
+  assert.match(stylesheet, /\.menu-button\{display:none\}/);
+  assert.match(stylesheet, /@media \(max-width:900px\)[\s\S]*?\.menu-button\{display:inline-flex/);
+  assert.doesNotMatch(stylesheet, /\.cart-button,\.menu-button\{display:inline-flex/);
+});
+
 test("Shopify product pages resolve native variants and preserve line-item properties", async () => {
   const template = await readFile(new URL("../adapters/shopify/sections/main-product.liquid", import.meta.url), "utf8");
 
