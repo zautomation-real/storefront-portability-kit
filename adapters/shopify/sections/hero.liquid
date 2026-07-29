@@ -1,0 +1,35 @@
+<section class="hero" id="top">
+  <div class="hero__copy">
+    <p class="eyebrow">{{ section.settings.eyebrow | escape }}</p>
+    <h1>{{ section.settings.title | escape }}</h1>
+    <p>{{ section.settings.body }}</p>
+    <div class="actions">
+      <a class="button" href="{{ section.settings.primary_url }}">{{ section.settings.primary_label | escape }}</a>
+      {% if section.settings.secondary_label != blank %}<a class="button button--quiet" href="{{ section.settings.secondary_url }}">{{ section.settings.secondary_label | escape }}</a>{% endif %}
+    </div>
+  </div>
+  <div class="media hero__media">
+    {% if section.settings.image != blank %}
+      {{ section.settings.image | image_url: width: 1800 | image_tag: widths: '600,900,1200,1800', loading: 'eager', fetchpriority: 'high' }}
+    {% elsif section.settings.fallback_asset != blank %}
+      <img src="{{ section.settings.fallback_asset | asset_url }}" alt="{{ settings.brand_name | escape }}" width="1800" height="1800" loading="eager" fetchpriority="high">
+    {% endif %}
+  </div>
+</section>
+{% schema %}
+{
+  "name": "Hero",
+  "settings": [
+    { "type": "text", "id": "eyebrow", "label": "Eyebrow" },
+    { "type": "text", "id": "title", "label": "Title" },
+    { "type": "textarea", "id": "body", "label": "Body" },
+    { "type": "image_picker", "id": "image", "label": "Image" },
+    { "type": "text", "id": "fallback_asset", "label": "Fallback theme asset" },
+    { "type": "text", "id": "primary_label", "label": "Primary label" },
+    { "type": "url", "id": "primary_url", "label": "Primary link" },
+    { "type": "text", "id": "secondary_label", "label": "Secondary label" },
+    { "type": "url", "id": "secondary_url", "label": "Secondary link" }
+  ],
+  "presets": [{ "name": "Hero" }]
+}
+{% endschema %}

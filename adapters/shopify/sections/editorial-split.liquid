@@ -1,0 +1,11 @@
+<section class="section editorial" id="{{ section.settings.anchor_id | default: 'editorial' | handle }}">
+  <div class="editorial__copy"><p class="eyebrow">{{ section.settings.eyebrow | escape }}</p><h2>{{ section.settings.title | escape }}</h2><p class="section-intro">{{ section.settings.body | escape }}</p>{% if section.settings.action_label != blank %}<a class="text-link" href="{{ section.settings.action_url }}">{{ section.settings.action_label | escape }}</a>{% endif %}</div>
+  <div class="media editorial__media">{% if section.settings.image != blank %}{{ section.settings.image | image_url: width: 1800 | image_tag: widths: '600,900,1200,1800', loading: 'lazy' }}{% elsif section.settings.fallback_asset != blank %}<img src="{{ section.settings.fallback_asset | asset_url }}" alt="{{ section.settings.title | escape }}" width="1600" height="1067" loading="lazy">{% endif %}</div>
+</section>
+{% schema %}
+{
+  "name": "Editorial split",
+  "settings": [{ "type": "text", "id": "anchor_id", "label": "Anchor ID", "default": "editorial" }, { "type": "text", "id": "eyebrow", "label": "Eyebrow" }, { "type": "text", "id": "title", "label": "Title" }, { "type": "textarea", "id": "body", "label": "Body" }, { "type": "image_picker", "id": "image", "label": "Image" }, { "type": "text", "id": "fallback_asset", "label": "Fallback theme asset" }, { "type": "text", "id": "action_label", "label": "Link label" }, { "type": "url", "id": "action_url", "label": "Link" }],
+  "presets": [{ "name": "Editorial split" }]
+}
+{% endschema %}

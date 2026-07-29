@@ -1,0 +1,20 @@
+<footer class="site-footer">
+  <a class="wordmark" href="{{ routes.root_url }}">{{ settings.brand_name | default: shop.name | escape }}</a>
+  <p>{{ section.settings.note | escape }}</p>
+  <nav aria-label="Footer navigation">
+    {% for link in section.settings.menu.links %}<a href="{{ link.url }}">{{ link.title | escape }}</a>{% else %}{% render 'fallback-footer' %}{% endfor %}
+    {% if shop.shipping_policy != blank %}<a href="{{ shop.shipping_policy.url }}">Shipping</a>{% endif %}
+    {% if shop.refund_policy != blank %}<a href="{{ shop.refund_policy.url }}">Returns</a>{% endif %}
+    {% if shop.privacy_policy != blank %}<a href="{{ shop.privacy_policy.url }}">Privacy</a>{% endif %}
+    {% if shop.terms_of_service != blank %}<a href="{{ shop.terms_of_service.url }}">Terms</a>{% endif %}
+  </nav>
+</footer>
+{% schema %}
+{
+  "name": "Footer",
+  "settings": [
+    { "type": "textarea", "id": "note", "label": "Note", "default": "__FOOTER_NOTE__" },
+    { "type": "link_list", "id": "menu", "label": "Footer menu" }
+  ]
+}
+{% endschema %}

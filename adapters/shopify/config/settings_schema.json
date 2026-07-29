@@ -1,0 +1,19 @@
+[
+  {
+    "name": "theme_info",
+    "theme_name": "Storefront Portability Kit",
+    "theme_author": "Zay / Creative Systems",
+    "theme_version": "0.1.0",
+    "theme_documentation_url": "https://github.com/zautomation-real/storefront-portability-kit",
+    "theme_support_email": "zautomation.real@gmail.com"
+  },
+  {
+    "name": "Brand",
+    "settings": [
+      { "type": "text", "id": "brand_name", "label": "Brand name", "default": "__BRAND_NAME__" },
+      { "type": "text", "id": "catalog_vendor", "label": "Catalog vendor", "info": "When set, collection and search views only show products from this vendor.", "default": "__BRAND_NAME__" },
+      { "type": "link_list", "id": "primary_menu", "label": "Primary menu" },
+      { "type": "color", "id": "theme_color", "label": "Browser theme colour", "default": "__THEME_COLOR__" }
+    ]
+  }
+]

@@ -1,0 +1,178 @@
+import { readFile, readdir, stat } from "node:fs/promises";
+import path from "node:path";
+import { parseArgs, readJson, resolveWooCommercePaths, resolveWorkspacePaths, root } from "./lib.mjs";
+import { productVariants } from "./platform-output.mjs";
+
+const args = parseArgs(process.argv.slice(2));
+const { brandsRoot } = resolveWorkspacePaths(args);
+const { adapterRoot: wooCommerceAdapterRoot } = resolveWooCommercePaths(args);
+const shopifyRoot = path.join(root, "adapters", "shopify");
+const wooRenderer = wooCommerceAdapterRoot
+  ? await readFile(path.join(wooCommerceAdapterRoot, "inc", "storefront-kit.php"), "utf8")
+  : undefined;
+const supportedSections = ["proof-strip", "product-grid", "editorial-split", "steps", "testimonials", "comparison", "newsletter"];
+const entries = await readdir(brandsRoot, { withFileTypes: true });
+const brands = entries.filter((item) => item.isDirectory());
+const errors = [];
+
+function fail(scope, message) {
+  errors.push(`${scope}: ${message}`);
+}
+
+function isNonEmpty(value) {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+function optionValue(value) {
+  return typeof value === "string"
+    ? { label: value, priceModifier: 0 }
+    : { label: value?.label, priceModifier: value?.priceModifier || 0 };
+}
+
+async function checkAsset(brandDir, scope, relative) {
+  if (!isNonEmpty(relative) || !/^assets\/[a-z0-9][a-z0-9._/-]*$/i.test(relative) || relative.includes("..")) {
+    fail(scope, `invalid asset path ${JSON.stringify(relative)}`);
+    return;
+  }
+  const absolute = path.resolve(brandDir, relative);
+  if (!absolute.startsWith(`${path.resolve(brandDir)}${path.sep}`)) {
+    fail(scope, `asset escapes its brand directory: ${relative}`);
+    return;
+  }
+  try {
+    const details = await stat(absolute);
+    if (!details.isFile() || details.size < 500) fail(scope, `asset is missing or empty: ${relative}`);
+  } catch {
+    fail(scope, `asset does not exist: ${relative}`);
+  }
+}
+
+for (const entry of brands) {
+  const id = entry.name;
+  const brandDir = path.join(brandsRoot, id);
+  let brand;
+  let catalog;
+  try {
+    brand = await readJson(path.join(brandDir, "brand.json"));
+    catalog = await readJson(path.join(brandDir, "catalog.json"));
+  } catch (error) {
+    fail(id, `invalid JSON (${error.message})`);
+    continue;
+  }
+
+  if (brand.id !== id) fail(id, "brand.id must match its directory");
+  for (const key of ["displayName", "vertical", "locale", "currency", "announcement"]) {
+    if (!isNonEmpty(brand[key])) fail(id, `${key} is required`);
+  }
+  for (const token of ["ink", "paper", "muted", "accent", "accentContrast", "line", "surface", "soft"]) {
+    if (!isNonEmpty(brand.palette?.[token])) fail(id, `palette.${token} is required`);
+  }
+  if (!Array.isArray(brand.navigation) || brand.navigation.length < 3) fail(id, "at least 3 navigation entries are required");
+  if (!Array.isArray(brand.sections) || brand.sections.length < 4) fail(id, "at least 4 commercial sections are required");
+  if (!Array.isArray(catalog.products) || catalog.products.length < 3) fail(id, "catalog must include at least 3 products");
+
+  await checkAsset(brandDir, `${id}/hero`, brand.hero?.media);
+
+  const productIds = new Set();
+  for (const product of catalog.products || []) {
+    const scope = `${id}/${product.id || "product"}`;
+    if (!isNonEmpty(product.id)) fail(scope, "product id is required");
+    if (productIds.has(product.id)) fail(scope, `duplicate product id ${product.id}`);
+    productIds.add(product.id);
+    if (!isNonEmpty(product.name) || !isNonEmpty(product.category) || !isNonEmpty(product.description)) fail(scope, "name, category and description are required");
+    if (!Number.isInteger(product.price) || product.price < 0) fail(scope, "price must use non-negative minor currency units");
+    if (product.compareAtPrice != null && (!Number.isInteger(product.compareAtPrice) || product.compareAtPrice <= product.price)) fail(scope, "compareAtPrice must be an integer above price");
+    await checkAsset(brandDir, scope, product.image);
+
+    const options = product.options || [];
+    if (!Array.isArray(options) || options.length > 3) fail(scope, "products support at most 3 options");
+    const optionNames = new Set();
+    for (const option of options) {
+      if (!isNonEmpty(option.name)) fail(scope, "each option needs a name");
+      if (optionNames.has(option.name)) fail(scope, `duplicate option name ${option.name}`);
+      optionNames.add(option.name);
+      if (!Array.isArray(option.values) || !option.values.length) fail(scope, `${option.name || "option"} needs at least one value`);
+      const values = new Set();
+      for (const rawValue of option.values || []) {
+        const value = optionValue(rawValue);
+        if (!isNonEmpty(value.label)) fail(scope, `${option.name || "option"} contains an empty value`);
+        if (values.has(value.label)) fail(scope, `${option.name || "option"} repeats ${value.label}`);
+        values.add(value.label);
+        if (!Number.isInteger(value.priceModifier)) fail(scope, `${option.name || "option"}/${value.label} priceModifier must be an integer`);
+        if (product.price + value.priceModifier < 0) fail(scope, `${option.name || "option"}/${value.label} produces a negative price`);
+      }
+    }
+    const variants = productVariants(product);
+    if (variants.length > 100) fail(scope, `${variants.length} variants exceed the 100-variant fixture limit`);
+    if (variants.some((variant) => !Number.isInteger(variant.price) || variant.price < 0)) fail(scope, "every generated variant needs a valid price");
+  }
+
+  const anchors = new Set(["top"]);
+  for (const section of brand.sections || []) {
+    const scope = `${id}/section:${section.id || section.type || "unknown"}`;
+    if (!supportedSections.includes(section.type)) fail(scope, `unsupported section type ${section.type}`);
+    if (!isNonEmpty(section.id)) fail(scope, "every section needs a stable id");
+    if (anchors.has(section.id)) fail(scope, `duplicate section id ${section.id}`);
+    anchors.add(section.id);
+    if (section.media) await checkAsset(brandDir, scope, section.media);
+    if (section.type === "product-grid") {
+      if (!Array.isArray(section.productIds) || !section.productIds.length) fail(scope, "product-grid needs productIds");
+      for (const productId of section.productIds || []) if (!productIds.has(productId)) fail(scope, `references missing product ${productId}`);
+    }
+    if (["proof-strip", "steps", "testimonials", "comparison"].includes(section.type) && (!Array.isArray(section.items) || !section.items.length)) {
+      fail(scope, `${section.type} needs items`);
+    }
+  }
+
+  const actions = [...(brand.navigation || []), brand.hero?.primaryAction, brand.hero?.secondaryAction, ...(brand.sections || []).map((section) => section.action), ...(brand.footer?.links || [])].filter(Boolean);
+  for (const item of actions) {
+    if (!isNonEmpty(item.label) || !isNonEmpty(item.href)) fail(id, "navigation and actions need label and href");
+    if (item.href?.startsWith("#") && item.href !== "#" && !anchors.has(item.href.slice(1))) fail(id, `link targets missing anchor ${item.href}`);
+  }
+}
+
+for (const type of supportedSections) {
+  try {
+    await stat(path.join(shopifyRoot, "sections", `${type}.liquid`));
+  } catch {
+    fail("shopify", `missing section adapter ${type}.liquid`);
+  }
+  if (wooRenderer && !wooRenderer.includes(`$type === '${type}'`)) fail("woocommerce", `missing section renderer for ${type}`);
+}
+
+for (const directory of [path.join(shopifyRoot, "config"), path.join(shopifyRoot, "templates")]) {
+  for (const entry of await readdir(directory, { withFileTypes: true })) {
+    if (!entry.isFile() || path.extname(entry.name) !== ".json") continue;
+    try {
+      JSON.parse(await readFile(path.join(directory, entry.name), "utf8"));
+    } catch (error) {
+      fail("shopify", `${entry.name} contains invalid JSON (${error.message})`);
+    }
+  }
+}
+
+for (const entry of await readdir(path.join(shopifyRoot, "sections"), { withFileTypes: true })) {
+  if (!entry.isFile() || path.extname(entry.name) !== ".liquid") continue;
+  const contents = await readFile(path.join(shopifyRoot, "sections", entry.name), "utf8");
+  if (/\|\s*asset_url\s*\|\s*image_tag/.test(contents)) {
+    fail("shopify", `${entry.name} sends an asset URL string into image_tag; render theme assets with an img element`);
+  }
+  const match = contents.match(/{%\s*schema\s*%}([\s\S]*?){%\s*endschema\s*%}/);
+  if (!match) {
+    fail("shopify", `${entry.name} is missing a schema block`);
+    continue;
+  }
+  try {
+    JSON.parse(match[1]);
+  } catch (error) {
+    fail("shopify", `${entry.name} has invalid schema JSON (${error.message})`);
+  }
+}
+
+if (errors.length) {
+  console.error(errors.map((error) => `- ${error}`).join("\n"));
+  process.exitCode = 1;
+} else {
+  const adapterScope = wooRenderer ? "both native adapters" : "the public Shopify adapter";
+  console.log(`Checked ${brands.length} brand packs, ${supportedSections.length} shared sections and ${adapterScope}.`);
+}

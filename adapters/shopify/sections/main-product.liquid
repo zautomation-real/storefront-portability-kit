@@ -1,0 +1,304 @@
+{% liquid
+  assign selected_variant = product.selected_or_first_available_variant
+  assign engraving_option_position = 0
+
+  for product_option in product.options_with_values
+    assign product_option_name = product_option.name | strip | downcase
+    if product_option_name == 'engraving'
+      assign engraving_option_position = product_option.position
+    endif
+  endfor
+%}
+
+<section class="main-product" id="MainProduct-{{ section.id }}">
+  <div class="media main-product__media">
+    {% if product.featured_image %}
+      {{ product.featured_image | image_url: width: 1400 | image_tag: widths: '500,800,1100,1400', loading: 'eager', fetchpriority: 'high' }}
+    {% else %}
+      {% render 'fixture-product-image', product: product, loading: 'eager' %}
+    {% endif %}
+  </div>
+
+  <div class="main-product__content">
+    {% if product.type != blank %}<p class="eyebrow">{{ product.type | escape }}</p>{% endif %}
+    <h1>{{ product.title | escape }}</h1>
+
+    <p class="main-product__price" aria-live="polite" aria-atomic="true">
+      <span data-product-price>{{ selected_variant.price | money }}</span>
+      <s data-product-compare{% unless selected_variant.compare_at_price > selected_variant.price %} hidden{% endunless %}>
+        {% if selected_variant.compare_at_price > selected_variant.price %}{{ selected_variant.compare_at_price | money }}{% endif %}
+      </s>
+    </p>
+
+    <div class="rte">{{ product.description }}</div>
+
+    {% form 'product', product, class: 'shopify-product-form main-product__form', data-native-cart-form: 'true' %}
+      <input
+        type="hidden"
+        name="id"
+        value="{{ selected_variant.id }}"
+        data-variant-id
+        disabled
+      >
+
+      {% unless product.has_only_default_variant %}
+        <div class="product-options" data-product-options hidden>
+          {% for product_option in product.options_with_values %}
+            {% assign option_index = product_option.position | minus: 1 %}
+            <fieldset class="product-option" data-product-option-group data-option-index="{{ option_index }}">
+              <legend>{{ product_option.name | escape }}</legend>
+              <div class="product-option__values">
+                {% for option_value in product_option.values %}
+                  {% capture option_id %}Option-{{ section.id }}-{{ product_option.position }}-{{ forloop.index }}{% endcapture %}
+                  {% assign option_value_key = option_value | handle %}
+                  {% assign requires_engraving = true %}
+                  {% if option_value_key contains 'without-engraving' or option_value_key contains 'no-engraving' or option_value_key == 'none' %}
+                    {% assign requires_engraving = false %}
+                  {% endif %}
+                  <input
+                    class="product-option__input"
+                    type="radio"
+                    id="{{ option_id }}"
+                    name="option-{{ section.id }}-{{ product_option.position }}"
+                    value="{{ option_value | escape }}"
+                    data-product-option
+                    data-option-index="{{ option_index }}"
+                    {% if product_option.position == engraving_option_position %}data-requires-engraving="{{ requires_engraving }}"{% endif %}
+                    {% if product_option.selected_value == option_value %}checked{% endif %}
+                  >
+                  <label class="product-option__label" for="{{ option_id }}">{{ option_value | escape }}</label>
+                {% endfor %}
+              </div>
+            </fieldset>
+          {% endfor %}
+        </div>
+      {% endunless %}
+
+      {% if engraving_option_position > 0 %}
+        <div class="product-property" data-engraving-property hidden>
+          <label for="Engraving-{{ section.id }}">Engraving text</label>
+          <input
+            type="text"
+            id="Engraving-{{ section.id }}"
+            name="properties[Engraving]"
+            maxlength="18"
+            autocomplete="off"
+            aria-describedby="EngravingHelp-{{ section.id }}"
+            data-engraving-input
+            disabled
+          >
+          <small id="EngravingHelp-{{ section.id }}">Maximum <span data-engraving-limit>18</span> characters.</small>
+        </div>
+      {% endif %}
+
+      <label for="Quantity-{{ section.id }}">Quantity</label>
+      <input
+        type="number"
+        id="Quantity-{{ section.id }}"
+        name="quantity"
+        min="1"
+        value="1"
+        inputmode="numeric"
+      >
+
+      <noscript>
+        {% if product.has_only_default_variant %}
+          <input type="hidden" name="id" value="{{ selected_variant.id }}">
+        {% else %}
+          <label for="Variant-{{ section.id }}">Option</label>
+          <select id="Variant-{{ section.id }}" name="id">
+            {% for variant in product.variants %}
+              <option
+                value="{{ variant.id }}"
+                {% if variant == selected_variant %}selected{% endif %}
+                {% unless variant.available %}disabled{% endunless %}
+              >
+                {{ variant.title | escape }} — {{ variant.price | money }}{% unless variant.available %} — {{ 'products.sold_out' | t }}{% endunless %}
+              </option>
+            {% endfor %}
+          </select>
+        {% endif %}
+        {% if engraving_option_position > 0 %}
+          <label for="EngravingNoScript-{{ section.id }}">Engraving text (complete only when choosing engraving)</label>
+          <input
+            type="text"
+            id="EngravingNoScript-{{ section.id }}"
+            name="properties[Engraving]"
+            maxlength="18"
+            autocomplete="off"
+          >
+        {% endif %}
+      </noscript>
+
+      <button
+        class="button button--full"
+        type="submit"
+        data-product-submit
+        data-add-label="{{ 'products.add_to_cart' | t | escape }}"
+        data-sold-out-label="{{ 'products.sold_out' | t | escape }}"
+        data-loading-label="Adding…"
+        data-available="{{ selected_variant.available }}"
+        data-product-title="{{ product.title | escape }}"
+        aria-label="{% if selected_variant.available %}{{ 'products.add_to_cart' | t | escape }} — {{ product.title | escape }}{% else %}{{ 'products.sold_out' | t | escape }} — {{ product.title | escape }}{% endif %}"
+        aria-describedby="ProductStatus-{{ section.id }}"
+        {% unless selected_variant.available %}disabled{% endunless %}
+      >{% if selected_variant.available %}{{ 'products.add_to_cart' | t }}{% else %}{{ 'products.sold_out' | t }}{% endif %}</button>
+
+      <p
+        id="ProductStatus-{{ section.id }}"
+        class="product-form__status"
+        data-product-status
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        {% if selected_variant.available %}hidden{% endif %}
+      >
+        {% unless selected_variant.available %}{{ 'products.sold_out' | t }}{% endunless %}
+      </p>
+    {% endform %}
+
+    <script type="application/json" data-product-variants>
+      [
+        {% for variant in product.variants %}
+          {
+            "id": {{ variant.id | json }},
+            "available": {{ variant.available | json }},
+            "options": {{ variant.options | json }},
+            "price": {{ variant.price | json }},
+            "price_formatted": {{ variant.price | money | json }},
+            "compare_at_price": {{ variant.compare_at_price | default: 0 | json }},
+            "compare_at_price_formatted": {% if variant.compare_at_price > variant.price %}{{ variant.compare_at_price | money | json }}{% else %}""{% endif %}
+          }{% unless forloop.last %},{% endunless %}
+        {% endfor %}
+      ]
+    </script>
+  </div>
+</section>
+
+<script>
+  (() => {
+    const root = document.getElementById({{ 'MainProduct-' | append: section.id | json }});
+    if (!root) return;
+
+    const form = root.querySelector("form[data-native-cart-form]");
+    const variantId = form?.querySelector("[data-variant-id]");
+    const optionsRoot = form?.querySelector("[data-product-options]");
+    const optionInputs = [...(form?.querySelectorAll("[data-product-option]") || [])];
+    const variantsElement = root.querySelector("[data-product-variants]");
+    const price = root.querySelector("[data-product-price]");
+    const compare = root.querySelector("[data-product-compare]");
+    const submit = form?.querySelector("[data-product-submit]");
+    const status = form?.querySelector("[data-product-status]");
+    const engravingProperty = form?.querySelector("[data-engraving-property]");
+    const engravingInput = form?.querySelector("[data-engraving-input]");
+    const engravingLimit = form?.querySelector("[data-engraving-limit]");
+    const addLabel = submit?.dataset.addLabel || "Add to bag";
+    const soldOutLabel = submit?.dataset.soldOutLabel || "Sold out";
+    let variants = [];
+
+    try {
+      variants = JSON.parse(variantsElement?.textContent || "[]");
+    } catch {
+      variants = [];
+    }
+
+    if (!form || !variantId || !submit) return;
+    variantId.disabled = false;
+    if (!variants.length) return;
+    if (optionsRoot) optionsRoot.hidden = false;
+
+    const selectedOptions = () => {
+      const values = [];
+      optionInputs.forEach((input) => {
+        if (input.checked) values[Number(input.dataset.optionIndex)] = input.value;
+      });
+      return values;
+    };
+
+    const variantForSelection = () => {
+      if (!optionInputs.length) {
+        return variants.find((variant) => String(variant.id) === variantId.value) || variants[0];
+      }
+      const values = selectedOptions();
+      return variants.find((variant) => variant.options.every((value, index) => value === values[index]));
+    };
+
+    const updateEngraving = () => {
+      if (!engravingProperty || !engravingInput) return;
+      const engravingChoice = optionInputs.find((input) => input.checked && input.hasAttribute("data-requires-engraving"));
+      const required = engravingChoice?.dataset.requiresEngraving === "true";
+      const statedLimit = engravingChoice?.value.match(/\d+/)?.[0];
+      const maximum = Math.min(50, Math.max(1, Number(statedLimit) || 18));
+
+      engravingProperty.hidden = !required;
+      engravingInput.disabled = !required;
+      engravingInput.required = required;
+      engravingInput.maxLength = maximum;
+      if (engravingLimit) engravingLimit.textContent = String(maximum);
+    };
+
+    const updateOptionAvailability = () => {
+      const values = selectedOptions();
+      optionInputs.forEach((input) => {
+        const optionIndex = Number(input.dataset.optionIndex);
+        const hasAvailableMatch = variants.some((variant) => variant.available && variant.options.every((value, index) => {
+          if (index === optionIndex) return value === input.value;
+          if (index < optionIndex) return !values[index] || value === values[index];
+          return true;
+        }));
+        input.disabled = !hasAvailableMatch && !input.checked;
+        input.setAttribute("aria-disabled", String(input.disabled));
+      });
+    };
+
+    const updateVariant = ({ updateUrl = true } = {}) => {
+      const variant = variantForSelection();
+      const available = Boolean(variant?.available);
+
+      variantId.value = variant?.id || "";
+      submit.disabled = !available;
+      submit.dataset.available = String(available);
+      submit.textContent = available ? addLabel : soldOutLabel;
+      submit.setAttribute("aria-label", `${available ? addLabel : soldOutLabel} — ${submit.dataset.productTitle || ""}`);
+
+      if (variant && price) price.textContent = variant.price_formatted;
+      if (compare) {
+        const showCompare = Boolean(variant?.compare_at_price > variant?.price && variant.compare_at_price_formatted);
+        compare.textContent = showCompare ? variant.compare_at_price_formatted : "";
+        compare.hidden = !showCompare;
+      }
+
+      if (status) {
+        status.textContent = available ? "" : soldOutLabel;
+        status.hidden = available;
+      }
+
+      updateEngraving();
+      updateOptionAvailability();
+
+      if (updateUrl && variant?.id && window.history?.replaceState) {
+        const url = new URL(window.location.href);
+        url.searchParams.set("variant", variant.id);
+        window.history.replaceState({}, "", url);
+      }
+    };
+
+    optionInputs.forEach((input) => input.addEventListener("change", () => updateVariant()));
+    form.addEventListener("submit", (event) => {
+      if (!variantId.value || submit.disabled) {
+        event.preventDefault();
+        event.stopPropagation();
+        if (status) {
+          status.textContent = soldOutLabel;
+          status.hidden = false;
+        }
+      }
+    });
+
+    updateVariant({ updateUrl: false });
+  })();
+</script>
+
+{% schema %}
+{ "name": "Main product", "settings": [] }
+{% endschema %}

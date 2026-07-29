@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1400" role="img" aria-label="Geometric illustration of a grid notebook">
+  <rect width="1200" height="1400" fill="#d8ddcf"/>
+  <ellipse cx="620" cy="1200" rx="390" ry="76" fill="#1f2a2a" opacity=".16"/>
+  <g transform="rotate(-6 600 680)">
+    <rect x="254" y="182" width="720" height="1010" rx="34" fill="#1f2a2a"/>
+    <rect x="286" y="182" width="688" height="1010" rx="30" fill="#f3efe5"/>
+    <rect x="286" y="182" width="76" height="1010" fill="#c45238"/>
+    <rect x="430" y="322" width="404" height="224" rx="12" fill="#fffaf0" stroke="#1f2a2a" stroke-width="8"/>
+    <path d="M482 390H782M482 446H782M482 502H672" stroke="#aeb5aa" stroke-width="8"/>
+    <path d="M430 700H840M430 786H840M430 872H840M430 958H706" stroke="#aeb5aa" stroke-width="7" stroke-dasharray="8 18"/>
+    <circle cx="324" cy="276" r="12" fill="#fffaf0"/>
+    <circle cx="324" cy="378" r="12" fill="#fffaf0"/>
+    <circle cx="324" cy="480" r="12" fill="#fffaf0"/>
+    <circle cx="324" cy="582" r="12" fill="#fffaf0"/>
+  </g>
+</svg>

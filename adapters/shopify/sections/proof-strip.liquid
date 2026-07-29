@@ -1,0 +1,16 @@
+<section class="proof-strip" id="{{ section.settings.anchor_id | default: 'proof' | handle }}" aria-label="Store assurances"><div class="proof-strip__inner">
+  {% for block in section.blocks %}<div {{ block.shopify_attributes }}><strong>{{ block.settings.title | escape }}</strong><span>{{ block.settings.body | escape }}</span></div>{% endfor %}
+</div></section>
+{% schema %}
+{
+  "name": "Proof strip",
+  "settings": [
+    { "type": "text", "id": "anchor_id", "label": "Anchor ID", "default": "proof" },
+    { "type": "text", "id": "eyebrow", "label": "Eyebrow" },
+    { "type": "text", "id": "title", "label": "Title" },
+    { "type": "textarea", "id": "body", "label": "Body" }
+  ],
+  "blocks": [{ "type": "item", "name": "Assurance", "settings": [{ "type": "text", "id": "title", "label": "Title" }, { "type": "textarea", "id": "body", "label": "Body" }] }],
+  "presets": [{ "name": "Proof strip" }]
+}
+{% endschema %}

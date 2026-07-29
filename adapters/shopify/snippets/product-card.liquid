@@ -1,0 +1,72 @@
+{% liquid
+  assign card_variant = product.selected_or_first_available_variant
+  assign product_badge = blank
+  assign product_type_key = product.type | handle
+
+  for product_tag in product.tags
+    assign product_tag_key = product_tag | handle
+    if product_tag_key != product_type_key and product_badge == blank
+      assign product_badge = product_tag
+    endif
+  endfor
+%}
+
+<article class="product-card">
+  <a class="product-card__media" href="{{ product.url }}" aria-label="{{ product.title | escape }}">
+    <div class="media">
+      {% if product.featured_image %}
+        {{ product.featured_image | image_url: width: 900 | image_tag: widths: '360,540,720,900', loading: 'lazy', alt: product.title }}
+      {% else %}
+        {% render 'fixture-product-image', product: product, loading: 'lazy' %}
+      {% endif %}
+    </div>
+    {% if product_badge != blank %}<span class="product-card__badge">{{ product_badge | escape }}</span>{% endif %}
+  </a>
+
+  <div class="product-card__body">
+    {% if product.type != blank %}<p class="product-card__category">{{ product.type | escape }}</p>{% endif %}
+    <h3><a href="{{ product.url }}">{{ product.title | escape }}</a></h3>
+    <p>{{ product.description | strip_html | truncatewords: 22 }}</p>
+
+    <div class="product-card__buy">
+      <span class="product-card__price">
+        {% if product.price_varies %}
+          From {{ product.price_min | money }}
+        {% else %}
+          {{ card_variant.price | money }}
+          {% if card_variant.compare_at_price > card_variant.price %}<s>{{ card_variant.compare_at_price | money }}</s>{% endif %}
+        {% endif %}
+      </span>
+
+      {% if product.has_only_default_variant %}
+        {% form 'product', product, class: 'shopify-product-form', data-native-cart-form: 'true' %}
+          <input type="hidden" name="id" value="{{ card_variant.id }}" data-variant-id>
+          <input type="hidden" name="quantity" value="1">
+          <button
+            class="text-button"
+            type="submit"
+            data-product-submit
+            data-add-label="{{ 'products.add_to_cart' | t | escape }}"
+            data-sold-out-label="{{ 'products.sold_out' | t | escape }}"
+            data-loading-label="Adding…"
+            data-available="{{ product.available }}"
+            aria-label="{% if product.available %}{{ 'products.add_to_cart' | t | escape }} — {{ product.title | escape }}{% else %}{{ 'products.sold_out' | t | escape }} — {{ product.title | escape }}{% endif %}"
+            aria-describedby="CardStatus-{{ section.id }}-{{ product.id }}"
+            {% unless product.available %}disabled{% endunless %}
+          >{% if product.available %}{{ 'products.add_to_cart' | t }}{% else %}{{ 'products.sold_out' | t }}{% endif %}</button>
+          <span
+            id="CardStatus-{{ section.id }}-{{ product.id }}"
+            class="product-card__status"
+            data-product-status
+            role="status"
+            aria-live="polite"
+            aria-atomic="true"
+            hidden
+          ></span>
+        {% endform %}
+      {% else %}
+        <a class="text-button" href="{{ product.url }}" aria-label="{{ 'products.choose_options' | t | escape }} — {{ product.title | escape }}">{{ 'products.choose_options' | t }}</a>
+      {% endif %}
+    </div>
+  </div>
+</article>

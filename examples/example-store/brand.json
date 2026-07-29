@@ -1,0 +1,105 @@
+{
+  "$schema": "../../schema/brand.schema.json",
+  "id": "example-store",
+  "displayName": "Field Supply",
+  "vertical": "Stationery and desk objects",
+  "locale": "en-GB",
+  "currency": "GBP",
+  "announcement": "Free standard delivery on orders over £45",
+  "palette": {
+    "ink": "#1f2a2a",
+    "paper": "#f3efe5",
+    "muted": "#d8ddcf",
+    "accent": "#c45238",
+    "accentContrast": "#fffaf0",
+    "line": "#aeb5aa",
+    "surface": "#e7e1d4",
+    "soft": "#faf7ef"
+  },
+  "typography": {
+    "display": "Georgia, 'Times New Roman', serif",
+    "body": "Arial, Helvetica, sans-serif"
+  },
+  "navigation": [
+    { "label": "Shop", "href": "#shop" },
+    { "label": "Materials", "href": "#workbench" },
+    { "label": "Desk guide", "href": "#method" },
+    { "label": "Field notes", "href": "#field-notes" }
+  ],
+  "hero": {
+    "eyebrow": "Everyday desk goods",
+    "title": "Make room for the work.",
+    "body": "Quiet stationery and useful objects for notes, plans and the small rituals that keep a desk in order.",
+    "media": "assets/hero.svg",
+    "primaryAction": { "label": "Shop desk goods", "href": "#shop" },
+    "secondaryAction": { "label": "See the materials", "href": "#workbench" }
+  },
+  "sections": [
+    {
+      "type": "proof-strip",
+      "id": "essentials",
+      "items": [
+        { "title": "Useful by design", "body": "Simple forms with a clear purpose." },
+        { "title": "Tactile materials", "body": "Paper, board and metal chosen for daily handling." },
+        { "title": "Easy returns", "body": "Unused goods can be returned within 30 days." }
+      ]
+    },
+    {
+      "type": "product-grid",
+      "id": "shop",
+      "eyebrow": "The desk edit",
+      "title": "Tools for a clearer surface.",
+      "body": "A compact collection for writing, sorting and keeping the next task in view.",
+      "productIds": ["grid-notebook", "page-clips", "field-tray"]
+    },
+    {
+      "type": "editorial-split",
+      "id": "workbench",
+      "eyebrow": "Material notes",
+      "title": "Made to gather a patina.",
+      "body": "Uncoated paper softens with use, solid board keeps its shape and brushed metal records the rhythm of an ordinary working day.",
+      "media": "assets/workbench.svg",
+      "action": { "label": "Browse the collection", "href": "#shop" }
+    },
+    {
+      "type": "steps",
+      "id": "method",
+      "eyebrow": "A small desk reset",
+      "title": "Start with what stays.",
+      "body": "A three-part routine for making a working surface feel calm without making it precious.",
+      "items": [
+        { "number": "01", "title": "Clear", "body": "Move yesterday's loose pages into one deliberate stack." },
+        { "number": "02", "title": "Place", "body": "Keep one notebook and the tools needed for the task at hand." },
+        { "number": "03", "title": "Begin", "body": "Write the next useful action before opening another tab." }
+      ]
+    },
+    {
+      "type": "comparison",
+      "id": "details",
+      "eyebrow": "At a glance",
+      "title": "Choose by use.",
+      "body": "Each piece solves a different kind of desk clutter.",
+      "items": [
+        { "title": "Grid Notebook", "body": "For plans, diagrams and daily notes.", "meta": "160 pages" },
+        { "title": "Page Clips", "body": "For loose sheets and active references.", "meta": "Set of 6" },
+        { "title": "Field Tray", "body": "For pens, clips and small essentials.", "meta": "28 × 18 cm" }
+      ]
+    },
+    {
+      "type": "newsletter",
+      "id": "field-notes",
+      "eyebrow": "Field notes",
+      "title": "One useful note each month.",
+      "body": "Occasional desk ideas, material stories and notice of small restocks."
+    }
+  ],
+  "footer": {
+    "note": "Field Supply is a fictional stationery shop with a deliberately simple catalogue.",
+    "links": [
+      { "label": "Shop", "href": "#shop" },
+      { "label": "Materials", "href": "#workbench" },
+      { "label": "Desk guide", "href": "#method" },
+      { "label": "Field notes", "href": "#field-notes" }
+    ]
+  }
+}

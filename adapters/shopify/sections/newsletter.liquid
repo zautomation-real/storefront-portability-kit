@@ -1,0 +1,48 @@
+{% assign newsletter_form_id = 'NewsletterForm-' | append: section.id %}
+<section class="newsletter" id="{{ section.settings.anchor_id | default: 'newsletter' | handle }}">
+  <div>
+    <p class="eyebrow">{{ section.settings.eyebrow | escape }}</p>
+    <h2>{{ section.settings.title | escape }}</h2>
+    <p class="section-intro">{{ section.settings.body | escape }}</p>
+  </div>
+  {% form 'customer', id: newsletter_form_id, class: 'newsletter-form' %}
+    <input type="hidden" name="contact[tags]" value="newsletter">
+    <input type="hidden" name="contact[accepts_marketing]" value="true">
+    {% if form.posted_successfully? %}
+      <p id="NewsletterSuccess-{{ section.id }}" role="status" tabindex="-1">{{ section.settings.success_text | escape }}</p>
+    {% endif %}
+    {% if form.errors %}
+      <div id="NewsletterError-{{ section.id }}" role="alert">
+        {{ form.errors | default_errors }}
+      </div>
+    {% endif %}
+    <label for="NewsletterEmail-{{ section.id }}"><span>{{ section.settings.email_label | escape }}</span></label>
+    <input
+      id="NewsletterEmail-{{ section.id }}"
+      type="email"
+      name="contact[email]"
+      value="{{ form.email | escape }}"
+      required
+      autocomplete="email"
+      autocapitalize="off"
+      autocorrect="off"
+      {% if form.errors %}aria-invalid="true" aria-describedby="NewsletterError-{{ section.id }}"{% endif %}
+    >
+    <button class="button" type="submit">{{ section.settings.button_label | escape }}</button>
+  {% endform %}
+</section>
+{% schema %}
+{
+  "name": "Newsletter",
+  "settings": [
+    { "type": "text", "id": "anchor_id", "label": "Anchor ID", "default": "newsletter" },
+    { "type": "text", "id": "eyebrow", "label": "Eyebrow" },
+    { "type": "text", "id": "title", "label": "Title" },
+    { "type": "textarea", "id": "body", "label": "Body" },
+    { "type": "text", "id": "email_label", "label": "Email label", "default": "Email address" },
+    { "type": "text", "id": "button_label", "label": "Button label", "default": "Join the list" },
+    { "type": "text", "id": "success_text", "label": "Success message", "default": "Thank you. You are on the list." }
+  ],
+  "presets": [{ "name": "Newsletter" }]
+}
+{% endschema %}

@@ -1,0 +1,37 @@
+<section class="section product-section" id="{{ section.settings.anchor_id | default: 'shop' | handle }}">
+  <div class="section-heading"><p class="eyebrow">{{ section.settings.eyebrow | escape }}</p><h2>{{ section.settings.title | escape }}</h2><p class="section-intro">{{ section.settings.body | escape }}</p></div>
+  <div class="product-grid">
+    {% assign featured_products = section.settings.products %}
+    {% if featured_products != blank %}
+      {% for product in featured_products limit: 6 %}{% render 'product-card', product: product %}{% endfor %}
+    {% elsif section.settings.product_handles != blank %}
+      {% assign handles = section.settings.product_handles | split: ',' %}
+      {% for handle in handles limit: 6 %}{% assign clean_handle = handle | strip %}{% assign product = all_products[clean_handle] %}{% if product != blank %}{% render 'product-card', product: product %}{% endif %}{% endfor %}
+    {% else %}
+      {% assign rendered_products = 0 %}
+      {% for product in collections.all.products %}
+        {% if rendered_products < 6 %}
+          {% if settings.catalog_vendor == blank or product.vendor == settings.catalog_vendor %}
+            {% render 'product-card', product: product %}
+            {% assign rendered_products = rendered_products | plus: 1 %}
+          {% endif %}
+        {% endif %}
+      {% endfor %}
+      {% if rendered_products == 0 %}<p class="empty-state">Products will appear here once they are assigned in the theme editor.</p>{% endif %}
+    {% endif %}
+  </div>
+</section>
+{% schema %}
+{
+  "name": "Product grid",
+  "settings": [
+    { "type": "text", "id": "anchor_id", "label": "Anchor ID", "default": "shop" },
+    { "type": "text", "id": "eyebrow", "label": "Eyebrow" },
+    { "type": "text", "id": "title", "label": "Title" },
+    { "type": "textarea", "id": "body", "label": "Body" },
+    { "type": "text", "id": "product_handles", "label": "Fallback product handles", "info": "Comma-separated handles used before products are selected in the editor." },
+    { "type": "product_list", "id": "products", "label": "Products", "limit": 6 }
+  ],
+  "presets": [{ "name": "Product grid" }]
+}
+{% endschema %}

@@ -1,0 +1,28 @@
+{
+  "name": "shopify-woocommerce-storefront-kit",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "One storefront system with native Shopify and WooCommerce adapters.",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "build:all": "node scripts/build-all.mjs",
+    "build:playground": "node scripts/build-playground.mjs",
+    "build:playground:all": "node scripts/build-playground-all.mjs",
+    "check": "node scripts/check.mjs",
+    "preview": "node scripts/serve.mjs",
+    "package:releases": "node scripts/package-releases.mjs",
+    "release": "npm run validate && npm run package:releases",
+    "test": "node --test",
+    "test:playground": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-playground.ps1",
+    "theme:check": "node scripts/theme-check.mjs",
+    "validate": "node scripts/validate.mjs"
+  },
+  "engines": {
+    "node": ">=22.12"
+  },
+  "license": "SEE LICENSE IN LICENSE",
+  "devDependencies": {
+    "@shopify/cli": "4.5.2"
+  }
+}

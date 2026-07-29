@@ -1,0 +1,12 @@
+<section class="section steps" id="{{ section.settings.anchor_id | default: 'steps' | handle }}">
+  <div class="section-heading section-heading--sticky"><p class="eyebrow">{{ section.settings.eyebrow | escape }}</p><h2>{{ section.settings.title | escape }}</h2><p class="section-intro">{{ section.settings.body }}</p></div>
+  <div class="steps__list">{% for block in section.blocks %}<article {{ block.shopify_attributes }}><span>{{ block.settings.number | escape }}</span><div><h3>{{ block.settings.title | escape }}</h3><p>{{ block.settings.body }}</p></div></article>{% endfor %}</div>
+</section>
+{% schema %}
+{
+  "name": "Steps",
+  "settings": [{ "type": "text", "id": "anchor_id", "label": "Anchor ID", "default": "steps" }, { "type": "text", "id": "eyebrow", "label": "Eyebrow" }, { "type": "text", "id": "title", "label": "Title" }, { "type": "textarea", "id": "body", "label": "Body" }],
+  "blocks": [{ "type": "item", "name": "Step", "settings": [{ "type": "text", "id": "number", "label": "Number" }, { "type": "text", "id": "title", "label": "Title" }, { "type": "textarea", "id": "body", "label": "Body" }] }],
+  "presets": [{ "name": "Steps" }]
+}
+{% endschema %}

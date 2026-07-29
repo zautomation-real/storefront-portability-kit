@@ -1,0 +1,49 @@
+ZAY END-PRODUCT LICENSE 1.0
+
+Copyright (c) 2026 Zay / Creative Systems. All rights reserved.
+
+This licence applies to the original material in this repository except for files that LICENSING.md identifies as separately licensed.
+
+1. DEFINITIONS
+
+"Software" means the source code, build system, schemas, adapters, documentation, examples and other original material covered by this licence, including modified versions and substantial portions of them.
+
+"End Product" means a completed website or storefront made for one identified business, brand or client, substantially configured with business-specific branding and content and, where applicable, catalogue data, and intended to operate as that business's finished site. An End Product is not a template, starter kit, generator, library, theme offered for reuse, or any other development product.
+
+"Reusable Product" means the Software, or any copy, modification, extraction or derivative of it, that is presented, packaged, marketed or maintained for repeated use across more than one End Product, or that exposes materially similar reusable building, generation or adaptation functionality.
+
+2. PERMITTED USE
+
+Subject to this licence, you may view, download, copy, run and modify the Software privately; use it to create any number of End Products for yourself or for clients; deploy, deliver and sell those End Products; and give the owner of an End Product the source and rights reasonably necessary to host, operate, maintain and modify that specific End Product.
+
+You may give employees and contractors access to the Software only as needed to exercise these permissions on your behalf, provided they are bound by restrictions at least as protective as this licence. You remain responsible for their compliance.
+
+3. RESTRICTIONS
+
+Except for an End Product delivery expressly permitted by Section 2, without prior written permission from Zay / Creative Systems you may not publish, distribute, mirror, share, sell, rent, sublicense or otherwise provide the Software or a Reusable Product to another person; offer it as a template, starter kit, boilerplate, generator, library or development tool; offer access to its reusable building, generation or adaptation functionality as a product or service; enable another person to extract or reuse it for unrelated End Products; remove or obscure copyright and licence notices; or claim authorship or ownership of the Software.
+
+The owner of an End Product may use and modify the code delivered with that End Product only for that End Product and the same identified business. That owner may engage service providers for its operation or maintenance, but may not extract, publish, redistribute, resell or reuse the Software or any Reusable Product.
+
+A fork created through GitHub under its applicable terms does not grant any permission beyond this licence. It may be used only for private evaluation or to propose changes to this repository; it may not be promoted or maintained as an alternative source for the Software.
+
+4. OWNERSHIP AND TRADEMARKS
+
+The Software is licensed, not sold. Zay / Creative Systems retains all copyright and other rights not expressly granted here. This licence grants no right to use any name, logo or trademark of Zay / Creative Systems except to preserve required attribution.
+
+5. SEPARATELY LICENSED MATERIAL
+
+Third-party dependencies and files identified in LICENSING.md remain governed by their own licences. This licence does not limit rights that those separate licences grant.
+
+6. TERMINATION
+
+Your rights under this licence terminate automatically if you breach it. If the breach is curable, your rights are reinstated when you cure it within 30 days after first becoming aware of it. Sections 3, 4, 5, 7 and 8 survive termination.
+
+7. NO WARRANTY
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, TITLE AND NON-INFRINGEMENT.
+
+8. LIMITATION OF LIABILITY
+
+TO THE MAXIMUM EXTENT PERMITTED BY LAW, ZAY / CREATIVE SYSTEMS WILL NOT BE LIABLE FOR ANY CLAIM, LOSS OR DAMAGES ARISING FROM THE SOFTWARE OR ITS USE, WHETHER IN CONTRACT, TORT OR OTHERWISE.
+
+Any permission outside these terms requires a separate written agreement from Zay / Creative Systems.

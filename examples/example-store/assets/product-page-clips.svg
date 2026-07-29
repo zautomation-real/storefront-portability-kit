@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1400" role="img" aria-label="Geometric illustration of six page clips">
+  <rect width="1200" height="1400" fill="#f3efe5"/>
+  <circle cx="600" cy="700" r="450" fill="#e7e1d4"/>
+  <g fill="none" stroke="#9a6a32" stroke-width="42" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M330 310v248c0 94 72 168 162 168s162-74 162-168V356c0-58-44-104-100-104s-100 46-100 104v192c0 24 18 44 42 44s42-20 42-44V382"/>
+    <path d="M704 468v248c0 94 72 168 162 168s162-74 162-168V514c0-58-44-104-100-104s-100 46-100 104v192c0 24 18 44 42 44s42-20 42-44V540"/>
+    <path d="M242 744v226c0 84 66 152 148 152s148-68 148-152V790c0-52-40-94-92-94s-92 42-92 94v170c0 22 18 40 40 40s40-18 40-40V812"/>
+  </g>
+  <g fill="#c45238">
+    <circle cx="270" cy="220" r="22"/>
+    <circle cx="934" cy="292" r="22"/>
+    <circle cx="762" cy="1086" r="22"/>
+  </g>
+  <path d="M170 1240H1030" stroke="#1f2a2a" stroke-width="10"/>
+</svg>

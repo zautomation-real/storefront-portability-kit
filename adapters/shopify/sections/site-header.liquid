@@ -1,0 +1,23 @@
+<header class="site-header">
+  <a class="wordmark" href="{{ routes.root_url }}">{{ settings.brand_name | default: shop.name | escape }}</a>
+  <button class="menu-button" type="button" data-menu-toggle aria-expanded="false" aria-controls="primary-nav">{{ 'general.menu' | t }}</button>
+  <nav id="primary-nav" class="primary-nav" aria-label="Primary navigation">
+    {% for link in settings.primary_menu.links %}
+      <a href="{{ link.url }}">{{ link.title | escape }}</a>
+    {% else %}
+      {% render 'fallback-navigation' %}
+    {% endfor %}
+  </nav>
+  <a
+    class="cart-button"
+    href="{{ routes.cart_url }}"
+    data-cart-toggle
+    aria-controls="cart-drawer"
+    aria-label="{{ 'general.cart' | t }}: {{ cart.item_count }}"
+  >
+    {{ 'general.cart' | t }} <span data-cart-count>{{ cart.item_count }}</span>
+  </a>
+</header>
+{% schema %}
+{ "name": "Header", "settings": [] }
+{% endschema %}

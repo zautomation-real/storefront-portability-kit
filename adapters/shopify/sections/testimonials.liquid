@@ -1,0 +1,12 @@
+<section class="section testimonials" id="{{ section.settings.anchor_id | default: 'testimonials' | handle }}">
+  <div class="section-heading"><p class="eyebrow">{{ section.settings.eyebrow | escape }}</p><h2>{{ section.settings.title | escape }}</h2></div>
+  <div class="testimonial-grid">{% for block in section.blocks %}<figure {{ block.shopify_attributes }}><blockquote>“{{ block.settings.quote | escape }}”</blockquote><figcaption><strong>{{ block.settings.name | escape }}</strong><span>{{ block.settings.meta | escape }}</span></figcaption></figure>{% endfor %}</div>
+</section>
+{% schema %}
+{
+  "name": "Testimonials",
+  "settings": [{ "type": "text", "id": "anchor_id", "label": "Anchor ID", "default": "testimonials" }, { "type": "text", "id": "eyebrow", "label": "Eyebrow" }, { "type": "text", "id": "title", "label": "Title" }, { "type": "textarea", "id": "body", "label": "Body" }],
+  "blocks": [{ "type": "item", "name": "Testimonial", "settings": [{ "type": "textarea", "id": "quote", "label": "Quote" }, { "type": "text", "id": "name", "label": "Name" }, { "type": "text", "id": "meta", "label": "Meta" }] }],
+  "presets": [{ "name": "Testimonials" }]
+}
+{% endschema %}

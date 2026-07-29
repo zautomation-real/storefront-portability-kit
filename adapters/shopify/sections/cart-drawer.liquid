@@ -1,0 +1,78 @@
+<aside
+  class="cart-drawer"
+  id="cart-drawer"
+  role="dialog"
+  aria-modal="true"
+  aria-hidden="true"
+  aria-labelledby="CartDrawerTitle"
+  inert
+>
+  <div class="cart-drawer__head">
+    <h2 id="CartDrawerTitle">{{ section.settings.title | escape }}</h2>
+    <button type="button" data-cart-close aria-label="{{ section.settings.close_label | escape }}">
+      {{ section.settings.close_label | escape }}
+    </button>
+  </div>
+
+  <div class="cart-drawer__items" data-cart-drawer-content>
+    {% if cart.item_count == 0 %}
+      <p>{{ section.settings.empty_text | escape }}</p>
+    {% else %}
+      {% for item in cart.items %}
+        <article class="cart-drawer__item">
+          <a href="{{ item.url }}" aria-label="{{ item.product.title | escape }}">
+            {% if item.image %}
+              {% assign drawer_image_alt = item.image.alt | default: item.product.title %}
+              {{ item.image | image_url: width: 240 | image_tag: widths: '120,180,240', loading: 'lazy', alt: drawer_image_alt }}
+            {% else %}
+              {% render 'fixture-product-image', product: item.product, loading: 'lazy' %}
+            {% endif %}
+          </a>
+          <p>
+            <strong><a href="{{ item.url }}">{{ item.product.title | escape }}</a></strong>
+            {% unless item.product.has_only_default_variant %}<br>{{ item.variant.title | escape }}{% endunless %}
+            {% for property in item.properties %}
+              {% assign property_first_character = property.first | slice: 0 %}
+              {% unless property.last == blank or property_first_character == '_' %}<br>{{ property.first | escape }}: {{ property.last | escape }}{% endunless %}
+            {% endfor %}
+            <br>{{ item.quantity }} × {{ item.final_price | money }}
+          </p>
+          <a class="text-button" href="{{ item.url_to_remove }}" aria-label="Remove {{ item.product.title | escape }}">
+            {{ section.settings.remove_label | escape }}
+          </a>
+        </article>
+      {% endfor %}
+    {% endif %}
+  </div>
+
+  {% if cart.item_count == 0 %}
+    <a class="button button--full" href="{{ routes.root_url }}#shop">{{ section.settings.continue_label | escape }}</a>
+  {% else %}
+    <div class="cart-drawer__footer">
+      <p>{{ section.settings.subtotal_label | escape }} <strong>{{ cart.total_price | money }}</strong></p>
+      <div class="actions">
+        <a class="button button--quiet" href="{{ routes.cart_url }}">{{ section.settings.review_label | escape }}</a>
+        <form action="{{ routes.cart_url }}" method="post">
+          <button class="button" type="submit" name="checkout">{{ section.settings.checkout_label | escape }}</button>
+        </form>
+      </div>
+    </div>
+  {% endif %}
+</aside>
+<div class="scrim" data-scrim hidden></div>
+
+{% schema %}
+{
+  "name": "Cart drawer",
+  "settings": [
+    { "type": "text", "id": "title", "label": "Title", "default": "Your bag" },
+    { "type": "text", "id": "close_label", "label": "Close label", "default": "Close" },
+    { "type": "text", "id": "empty_text", "label": "Empty state", "default": "Your bag is waiting." },
+    { "type": "text", "id": "continue_label", "label": "Continue shopping label", "default": "Continue shopping" },
+    { "type": "text", "id": "remove_label", "label": "Remove label", "default": "Remove" },
+    { "type": "text", "id": "subtotal_label", "label": "Subtotal label", "default": "Subtotal" },
+    { "type": "text", "id": "review_label", "label": "Review bag label", "default": "Review bag" },
+    { "type": "text", "id": "checkout_label", "label": "Checkout label", "default": "Checkout" }
+  ]
+}
+{% endschema %}

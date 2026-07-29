@@ -1,0 +1,17 @@
+<section class="section comparison" id="{{ section.settings.anchor_id | default: 'compare' | handle }}">
+  <div class="section-heading"><p class="eyebrow">{{ section.settings.eyebrow | escape }}</p><h2>{{ section.settings.title | escape }}</h2><p class="section-intro">{{ section.settings.body | escape }}</p></div>
+  <div class="comparison-table" role="table">{% for block in section.blocks %}<article class="comparison-row" role="row" {{ block.shopify_attributes }}><h3 role="cell">{{ block.settings.title | escape }}</h3><p role="cell">{{ block.settings.body | escape }}</p>{% if block.settings.meta != blank %}<strong role="cell">{{ block.settings.meta | escape }}</strong>{% endif %}</article>{% endfor %}</div>
+</section>
+{% schema %}
+{
+  "name": "Comparison",
+  "settings": [
+    { "type": "text", "id": "anchor_id", "label": "Anchor ID", "default": "compare" },
+    { "type": "text", "id": "eyebrow", "label": "Eyebrow" },
+    { "type": "text", "id": "title", "label": "Title" },
+    { "type": "textarea", "id": "body", "label": "Body" }
+  ],
+  "blocks": [{ "type": "item", "name": "Comparison row", "settings": [{ "type": "text", "id": "title", "label": "Title" }, { "type": "textarea", "id": "body", "label": "Body" }, { "type": "text", "id": "meta", "label": "Value" }] }],
+  "presets": [{ "name": "Comparison" }]
+}
+{% endschema %}

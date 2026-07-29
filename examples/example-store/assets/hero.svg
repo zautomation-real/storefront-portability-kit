@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1200" role="img" aria-label="Geometric arrangement of paper and desk objects">
+  <rect width="1600" height="1200" fill="#d8ddcf"/>
+  <rect x="170" y="132" width="770" height="910" rx="18" fill="#f8f4ea" transform="rotate(-5 555 587)"/>
+  <rect x="238" y="210" width="640" height="742" rx="10" fill="#f3efe5" stroke="#1f2a2a" stroke-width="8"/>
+  <path d="M318 330H798M318 410H798M318 490H798M318 570H798M318 650H798M318 730H678" fill="none" stroke="#aeb5aa" stroke-width="6"/>
+  <circle cx="1158" cy="342" r="176" fill="#c45238"/>
+  <circle cx="1158" cy="342" r="92" fill="#f3efe5"/>
+  <rect x="1040" y="620" width="382" height="104" rx="52" fill="#1f2a2a" transform="rotate(18 1231 672)"/>
+  <rect x="1014" y="756" width="330" height="74" rx="37" fill="#fffaf0" stroke="#1f2a2a" stroke-width="7" transform="rotate(18 1179 793)"/>
+  <path d="M1098 892l246 80" stroke="#c45238" stroke-width="34" stroke-linecap="round"/>
+  <path d="M104 1090H1496" stroke="#1f2a2a" stroke-width="10"/>
+</svg>

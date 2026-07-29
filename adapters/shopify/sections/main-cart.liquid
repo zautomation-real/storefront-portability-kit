@@ -1,0 +1,64 @@
+<section class="section cart-page">
+  <div class="section-heading"><p class="eyebrow">Shopping bag</p><h1>{{ section.settings.title | escape }}</h1></div>
+  {% if cart.item_count == 0 %}
+    <p>{{ section.settings.empty_text | escape }}</p>
+    <a class="button" href="{{ routes.root_url }}#shop">{{ section.settings.continue_label | escape }}</a>
+  {% else %}
+    <form action="{{ routes.cart_url }}" method="post">
+      <div class="cart-lines">
+        {% for item in cart.items %}
+          <article class="cart-line">
+            <a class="media cart-line__media" href="{{ item.url }}">
+              {% if item.image %}
+                {% assign cart_image_alt = item.image.alt | default: item.product.title %}
+                {{ item.image | image_url: width: 360 | image_tag: widths: '180,270,360', loading: 'lazy', alt: cart_image_alt }}
+              {% else %}
+                {% render 'fixture-product-image', product: item.product, loading: 'lazy' %}
+              {% endif %}
+            </a>
+            <div>
+              <p class="product-card__category">{{ item.product.type | escape }}</p>
+              <h2><a href="{{ item.url }}">{{ item.product.title | escape }}</a></h2>
+              {% unless item.product.has_only_default_variant %}<p>{{ item.variant.title | escape }}</p>{% endunless %}
+              {% for property in item.properties %}
+                {% assign property_first_character = property.first | slice: 0 %}
+                {% unless property.last == blank or property_first_character == '_' %}<p>{{ property.first | escape }}: {{ property.last | escape }}</p>{% endunless %}
+              {% endfor %}
+              <a class="text-button" href="{{ item.url_to_remove }}" aria-label="Remove {{ item.product.title | escape }}">{{ section.settings.remove_label | escape }}</a>
+            </div>
+            <label>
+              <span>{{ section.settings.quantity_label | escape }}</span>
+              <input type="number" name="updates[{{ item.key }}]" value="{{ item.quantity }}" min="0" inputmode="numeric">
+            </label>
+            <strong>{{ item.final_line_price | money }}</strong>
+          </article>
+        {% endfor %}
+      </div>
+      <div class="cart-summary">
+        <div>
+          <p>{{ section.settings.subtotal_label | escape }} <strong>{{ cart.total_price | money }}</strong></p>
+          <p>{{ section.settings.checkout_note | escape }}</p>
+        </div>
+        <a class="button button--quiet" href="{{ routes.root_url }}#shop">{{ section.settings.continue_label | escape }}</a>
+        <button class="button button--quiet" type="submit" name="update">{{ section.settings.update_label | escape }}</button>
+        <button class="button" type="submit" name="checkout">{{ section.settings.checkout_label | escape }}</button>
+      </div>
+    </form>
+  {% endif %}
+</section>
+{% schema %}
+{
+  "name": "Main cart",
+  "settings": [
+    { "type": "text", "id": "title", "label": "Title", "default": "Your bag" },
+    { "type": "text", "id": "empty_text", "label": "Empty state", "default": "Your bag is waiting." },
+    { "type": "text", "id": "continue_label", "label": "Continue shopping label", "default": "Continue shopping" },
+    { "type": "text", "id": "remove_label", "label": "Remove label", "default": "Remove" },
+    { "type": "text", "id": "quantity_label", "label": "Quantity label", "default": "Quantity" },
+    { "type": "text", "id": "subtotal_label", "label": "Subtotal label", "default": "Subtotal" },
+    { "type": "text", "id": "checkout_note", "label": "Checkout note", "default": "Taxes and shipping are calculated at checkout." },
+    { "type": "text", "id": "update_label", "label": "Update label", "default": "Update bag" },
+    { "type": "text", "id": "checkout_label", "label": "Checkout label", "default": "Checkout" }
+  ]
+}
+{% endschema %}

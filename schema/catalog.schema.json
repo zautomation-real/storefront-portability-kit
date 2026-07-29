@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:storefront-kit:catalog",
+  "title": "Storefront catalog fixtures",
+  "type": "object",
+  "required": ["products"],
+  "properties": {
+    "products": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "price", "image", "category", "description"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+          "name": { "type": "string" },
+          "price": { "type": "integer", "minimum": 0 },
+          "compareAtPrice": { "type": "integer", "minimum": 0 },
+          "image": { "type": "string" },
+          "category": { "type": "string" },
+          "description": { "type": "string" },
+          "badge": { "type": "string" },
+          "options": {
+            "type": "array",
+            "maxItems": 3,
+            "items": {
+              "type": "object",
+              "required": ["name", "values"],
+              "properties": {
+                "name": { "type": "string", "minLength": 1 },
+                "values": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "oneOf": [
+                      { "type": "string", "minLength": 1 },
+                      {
+                        "type": "object",
+                        "required": ["label"],
+                        "properties": {
+                          "label": { "type": "string", "minLength": 1 },
+                          "priceModifier": { "type": "integer" }
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

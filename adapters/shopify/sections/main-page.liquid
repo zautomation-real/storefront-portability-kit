@@ -1,0 +1,7 @@
+<section class="section page-content">
+  <div class="section-heading"><p class="eyebrow">{{ section.settings.eyebrow | escape }}</p><h1>{{ page.title | escape }}</h1></div>
+  <div class="rte">{{ page.content }}</div>
+</section>
+{% schema %}
+{ "name": "Main page", "settings": [{ "type": "text", "id": "eyebrow", "label": "Eyebrow", "default": "Information" }] }
+{% endschema %}

@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1200" role="img" aria-label="Abstract work surface with ruler, notes and clips">
+  <rect width="1600" height="1200" fill="#1f2a2a"/>
+  <rect x="126" y="148" width="746" height="804" rx="20" fill="#f3efe5"/>
+  <rect x="202" y="226" width="594" height="648" rx="8" fill="#fffaf0" stroke="#aeb5aa" stroke-width="6"/>
+  <path d="M274 340H724M274 424H724M274 508H724M274 592H724M274 676H590" stroke="#aeb5aa" stroke-width="7"/>
+  <rect x="968" y="82" width="194" height="1000" rx="24" fill="#c45238" transform="rotate(9 1065 582)"/>
+  <path d="M1014 174h114M1002 264h114M990 354h114M978 444h114M966 534h114M954 624h114M942 714h114M930 804h114M918 894h114" stroke="#fffaf0" stroke-width="8"/>
+  <path d="M1260 330c118-58 236 14 218 126-18 110-176 134-230 48-42-66-10-136 12-174Z" fill="#d8ddcf"/>
+  <path d="M1266 662c88-64 194-10 178 86-14 86-136 110-192 46-40-46-18-100 14-132Z" fill="none" stroke="#f3efe5" stroke-width="26"/>
+  <circle cx="1368" cy="914" r="82" fill="#f3efe5"/>
+  <circle cx="1368" cy="914" r="34" fill="#1f2a2a"/>
+</svg>

@@ -1,0 +1,5 @@
+{
+  "accessibility": { "skip_to_content": "Skip to content" },
+  "products": { "add_to_cart": "Add to bag", "choose_options": "Choose options", "sold_out": "Sold out" },
+  "general": { "menu": "Menu", "cart": "Bag" }
+}

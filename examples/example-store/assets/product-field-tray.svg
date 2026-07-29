@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1400" role="img" aria-label="Geometric illustration of a shallow desk tray">
+  <rect width="1200" height="1400" fill="#e7e1d4"/>
+  <ellipse cx="600" cy="1174" rx="442" ry="92" fill="#1f2a2a" opacity=".14"/>
+  <path d="M170 382h860l-76 704H246L170 382Z" fill="#1f2a2a"/>
+  <path d="M224 432h752l-58 598H282l-58-598Z" fill="#d8b77e"/>
+  <path d="M282 510h636l-38 436H320l-38-436Z" fill="#f3efe5"/>
+  <rect x="360" y="576" width="370" height="64" rx="32" fill="#c45238" transform="rotate(-8 545 608)"/>
+  <rect x="410" y="690" width="410" height="48" rx="24" fill="#1f2a2a" transform="rotate(7 615 714)"/>
+  <circle cx="754" cy="824" r="68" fill="#d8ddcf" stroke="#1f2a2a" stroke-width="10"/>
+  <circle cx="754" cy="824" r="24" fill="#1f2a2a"/>
+  <path d="M328 1086h544" stroke="#c45238" stroke-width="18" stroke-linecap="round"/>
+  <path d="M214 356h772" stroke="#fffaf0" stroke-width="12" stroke-linecap="round"/>
+</svg>

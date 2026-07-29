@@ -1,0 +1,114 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:storefront-kit:brand",
+  "title": "Storefront brand pack",
+  "type": "object",
+  "required": [
+    "id",
+    "displayName",
+    "vertical",
+    "locale",
+    "currency",
+    "palette",
+    "typography",
+    "navigation",
+    "hero",
+    "sections",
+    "footer"
+  ],
+  "properties": {
+    "id": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+    "displayName": { "type": "string", "minLength": 1 },
+    "vertical": { "type": "string", "minLength": 1 },
+    "locale": { "type": "string", "minLength": 2 },
+    "currency": { "type": "string", "pattern": "^[A-Z]{3}$" },
+    "palette": {
+      "type": "object",
+      "required": ["ink", "paper", "muted", "accent", "accentContrast", "line"],
+      "additionalProperties": { "type": "string" }
+    },
+    "typography": {
+      "type": "object",
+      "required": ["display", "body"],
+      "properties": {
+        "display": { "type": "string" },
+        "body": { "type": "string" }
+      }
+    },
+    "navigation": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["label", "href"],
+        "properties": {
+          "label": { "type": "string" },
+          "href": { "type": "string" }
+        }
+      }
+    },
+    "hero": { "$ref": "#/$defs/hero" },
+    "sections": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/section" }
+    },
+    "footer": {
+      "type": "object",
+      "required": ["note", "links"],
+      "properties": {
+        "note": { "type": "string" },
+        "links": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/action" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "action": {
+      "type": "object",
+      "required": ["label", "href"],
+      "properties": {
+        "label": { "type": "string" },
+        "href": { "type": "string" }
+      }
+    },
+    "hero": {
+      "type": "object",
+      "required": ["eyebrow", "title", "body", "media", "primaryAction"],
+      "properties": {
+        "eyebrow": { "type": "string" },
+        "title": { "type": "string" },
+        "body": { "type": "string" },
+        "media": { "type": "string" },
+        "primaryAction": { "$ref": "#/$defs/action" },
+        "secondaryAction": { "$ref": "#/$defs/action" }
+      }
+    },
+    "section": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "enum": [
+            "proof-strip",
+            "product-grid",
+            "editorial-split",
+            "steps",
+            "testimonials",
+            "comparison",
+            "newsletter"
+          ]
+        },
+        "id": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+        "eyebrow": { "type": "string" },
+        "title": { "type": "string" },
+        "body": { "type": "string" },
+        "media": { "type": "string" },
+        "action": { "$ref": "#/$defs/action" },
+        "items": { "type": "array" },
+        "productIds": { "type": "array", "items": { "type": "string" } }
+      },
+      "additionalProperties": true
+    }
+  }
+}

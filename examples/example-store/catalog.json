@@ -1,0 +1,42 @@
+{
+  "$schema": "../../schema/catalog.schema.json",
+  "products": [
+    {
+      "id": "grid-notebook",
+      "name": "Grid Notebook",
+      "price": 1400,
+      "image": "assets/product-grid-notebook.svg",
+      "category": "Paper",
+      "description": "A lay-flat notebook with a quiet dot grid, sturdy covers and room for plans that change shape.",
+      "badge": "New",
+      "options": [
+        { "name": "Format", "values": ["A5", { "label": "B5", "priceModifier": 400 }] },
+        { "name": "Cover", "values": ["Moss", "Clay"] }
+      ]
+    },
+    {
+      "id": "page-clips",
+      "name": "Page Clips",
+      "price": 1800,
+      "image": "assets/product-page-clips.svg",
+      "category": "Desk tools",
+      "description": "Six low-profile metal clips that hold working papers together without hiding the page beneath.",
+      "badge": "Set of 6",
+      "options": [
+        { "name": "Finish", "values": ["Brushed brass", { "label": "Darkened brass", "priceModifier": 300 }] }
+      ]
+    },
+    {
+      "id": "field-tray",
+      "name": "Field Tray",
+      "price": 3200,
+      "image": "assets/product-field-tray.svg",
+      "category": "Organisation",
+      "description": "A shallow fibreboard tray that gives pens, clips and small desk objects one dependable place.",
+      "badge": "Desk staple",
+      "options": [
+        { "name": "Colour", "values": ["Warm sand", "Ink blue"] }
+      ]
+    }
+  ]
+}
