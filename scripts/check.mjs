@@ -66,8 +66,13 @@ for (const entry of brands) {
   }
   if (brand.presentation != null && (typeof brand.presentation !== "object" || Array.isArray(brand.presentation))) {
     fail(id, "presentation must be an object");
-  } else if (brand.presentation?.layout != null && !["standard", "editorial", "technical"].includes(brand.presentation.layout)) {
-    fail(id, `unsupported presentation.layout ${brand.presentation.layout}`);
+  } else {
+    if (brand.presentation?.layout != null && !["standard", "editorial", "technical"].includes(brand.presentation.layout)) {
+      fail(id, `unsupported presentation.layout ${brand.presentation.layout}`);
+    }
+    if (brand.presentation?.productZoom != null && !["click", "hover"].includes(brand.presentation.productZoom)) {
+      fail(id, `unsupported presentation.productZoom ${brand.presentation.productZoom}`);
+    }
   }
   for (const token of ["ink", "paper", "muted", "accent", "accentContrast", "line", "surface", "soft"]) {
     if (!isNonEmpty(brand.palette?.[token])) fail(id, `palette.${token} is required`);

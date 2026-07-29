@@ -97,19 +97,45 @@ function toggleProductZoom(root, event) {
   if (!pinned) setProductZoomOrigin(root, 50, 50);
 }
 
+function syncProductMediaFrame(root, image) {
+  const width = image?.naturalWidth || 0;
+  const height = image?.naturalHeight || 0;
+  if (!width || !height) return;
+  const ratio = width / height;
+  if (ratio <= 1.1) {
+    root.removeAttribute("data-product-media-shape");
+    root.style.removeProperty("--product-media-ratio");
+    return;
+  }
+  root.dataset.productMediaShape = "landscape";
+  root.style.setProperty("--product-media-ratio", String(ratio));
+}
+
+function resetProductMediaFrame(root) {
+  root.removeAttribute("data-product-media-shape");
+  root.style.removeProperty("--product-media-ratio");
+}
+
 function initProductZoom(root) {
   if (productZooms.has(root)) return;
   productZooms.add(root);
   const state = zoomState(root);
   const image = root.querySelector("img");
+  const hoverEnabled = root.dataset.productZoomMode === "hover";
   if (image) {
     image.draggable = false;
-    new MutationObserver(() => resetProductZoom(root)).observe(image, { attributes: true, attributeFilter: ["src", "srcset"] });
+    image.addEventListener("load", () => syncProductMediaFrame(root, image));
+    if (image.complete) syncProductMediaFrame(root, image);
+    new MutationObserver(() => {
+      resetProductZoom(root);
+      resetProductMediaFrame(root);
+      if (image.complete) syncProductMediaFrame(root, image);
+    }).observe(image, { attributes: true, attributeFilter: ["src", "srcset"] });
   }
 
   root.addEventListener("pointermove", (event) => {
     const pinned = root.getAttribute("aria-pressed") === "true";
-    if (!pinned && productZoomFinePointer.matches && event.pointerType === "mouse") {
+    if (!pinned && hoverEnabled && productZoomFinePointer.matches && event.pointerType === "mouse") {
       setProductZoomOriginFromPointer(root, event);
       return;
     }

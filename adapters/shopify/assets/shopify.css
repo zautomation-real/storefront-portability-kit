@@ -109,6 +109,11 @@ body[data-layout="technical"] .password-page__content h1{text-transform:uppercas
   .main-product__content h1,.not-found__content h1,.password-page__content h1{font-size:clamp(3.4rem,5.5vw,4.8rem)}
 }
 
+@media(min-width:901px){
+  body[data-layout="technical"] .main-product__media[data-product-media-shape="landscape"]{align-self:start;min-height:0;aspect-ratio:var(--product-media-ratio)}
+  body[data-layout="technical"] .main-product__media[data-product-media-shape="landscape"] img{object-fit:cover}
+}
+
 @media(max-width:760px){
   .main-product__content h1,.not-found__content h1,.password-page__content h1{font-size:3.5rem}
   .cart-line{grid-template-columns:5rem 1fr}

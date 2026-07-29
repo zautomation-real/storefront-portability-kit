@@ -25,7 +25,8 @@
     "presentation": {
       "type": "object",
       "properties": {
-        "layout": { "enum": ["standard", "editorial", "technical"] }
+        "layout": { "enum": ["standard", "editorial", "technical"] },
+        "productZoom": { "enum": ["click", "hover"] }
       },
       "additionalProperties": false
     },

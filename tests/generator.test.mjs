@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
-import { presentationLayout, productBodyHtml } from "../scripts/lib.mjs";
+import { presentationLayout, productBodyHtml, productZoomMode } from "../scripts/lib.mjs";
 import { renderProductPreview } from "../scripts/render-preview.mjs";
-import { combineShopifyProductCsv, productVariants, resolveVariantMedia, shopifyFallbackFooterSnippet, shopifyFallbackNavigationSnippet, shopifyFixtureImageSnippet, shopifyIndexTemplate, shopifyMediaManifest, shopifyPasswordTemplate, shopifyProductCsv, shopifyVariantMediaJsonSnippet, validateVariantMediaRules, wooProductCsv } from "../scripts/platform-output.mjs";
+import { combineShopifyProductCsv, productVariants, resolveVariantMedia, shopifyFallbackFooterSnippet, shopifyFallbackNavigationSnippet, shopifyFixtureAlternateImageSnippet, shopifyFixtureImageSnippet, shopifyIndexTemplate, shopifyMediaManifest, shopifyPasswordTemplate, shopifyProductCsv, shopifyVariantMediaJsonSnippet, validateVariantMediaRules, wooProductCsv } from "../scripts/platform-output.mjs";
 
 const brand = {
   id: "test-store",
@@ -40,6 +40,12 @@ test("presentation layouts use a closed public preset vocabulary", () => {
   assert.equal(presentationLayout({ presentation: { layout: "editorial" } }), "editorial");
   assert.equal(presentationLayout({ presentation: { layout: "unknown" } }), "standard");
   assert.equal(presentationLayout({}), "standard");
+});
+
+test("product zoom defaults to click and exposes hover as an explicit option", () => {
+  assert.equal(productZoomMode({ presentation: { productZoom: "hover" } }), "hover");
+  assert.equal(productZoomMode({ presentation: { productZoom: "unknown" } }), "click");
+  assert.equal(productZoomMode({}), "click");
 });
 
 function csvRows(text) {
@@ -204,6 +210,7 @@ test("Shopify outputs reject different option labels that collapse to the same S
 
 test("generated Liquid fixtures carry initial and client-side variant media fallbacks", () => {
   const imageSnippet = shopifyFixtureImageSnippet({ products: [product] });
+  const alternateSnippet = shopifyFixtureAlternateImageSnippet({ products: [product] });
   const jsonSnippet = shopifyVariantMediaJsonSnippet({ products: [product] });
   assert.match(imageSnippet, /variant\.option1 == "Dark"/);
   assert.match(imageSnippet, /brand-product-dark-installed\.webp/);
@@ -212,6 +219,9 @@ test("generated Liquid fixtures carry initial and client-side variant media fall
   assert.match(jsonSnippet, /"optionNames":\["Finish","Service"\]/);
   assert.match(jsonSnippet, /asset_url \| json/);
   assert.match(jsonSnippet, /"width":900,"height":1100/);
+  assert.match(alternateSnippet, /brand-product-dark\.webp/);
+  assert.match(alternateSnippet, /data-product-alternate-image/);
+  assert.doesNotMatch(shopifyFixtureAlternateImageSnippet({ products: [{ ...product, variantMedia: [] }] }), /when 'configured-product'/);
 });
 
 test("generated Shopify variant-media JSON cannot close its script element", () => {
@@ -247,6 +257,9 @@ test("static product preview exposes every product option and dynamic pricing ho
   assert.match(html, /data-base-compare="12000"/);
   assert.match(html, /data-preview-variant-media/);
   assert.match(html, /product-dark-installed\.webp/);
+  assert.match(html, /class="product-media-gallery product-media-gallery--extended"/);
+  assert.match(html, /data-preview-product-alternate-image/);
+  assert.match(html, /const alternateImage=/);
 });
 
 test("static product preview only requests engraving text for active engraving options", () => {
@@ -407,26 +420,46 @@ test("product pages show the rest of the catalogue without repeating the current
 });
 
 test("product imagery uses a shared accessible zoom contract without replacing WooCommerce zoom", async () => {
-  const [template, runtime, stylesheet] = await Promise.all([
+  const [template, runtime, stylesheet, shopifyStylesheet] = await Promise.all([
     readFile(new URL("../adapters/shopify/sections/main-product.liquid", import.meta.url), "utf8"),
     readFile(new URL("../shared/storefront.js", import.meta.url), "utf8"),
-    readFile(new URL("../shared/storefront.css", import.meta.url), "utf8")
+    readFile(new URL("../shared/storefront.css", import.meta.url), "utf8"),
+    readFile(new URL("../adapters/shopify/assets/shopify.css", import.meta.url), "utf8")
   ]);
   const preview = renderProductPreview(brand, product);
+  const hoverPreview = renderProductPreview({ ...brand, presentation: { productZoom: "hover" } }, product);
 
   for (const markup of [template, preview]) {
     assert.match(markup, /data-product-zoom/);
+    assert.match(markup, /data-product-zoom-mode=/);
     assert.match(markup, /role="button"/);
     assert.match(markup, /aria-pressed="false"/);
     assert.match(markup, /data-zoom-label=/);
     assert.match(markup, /data-unzoom-label=/);
   }
 
+  assert.match(template, /data-product-zoom-mode="__PRODUCT_ZOOM_MODE__"/);
+  assert.match(preview, /data-product-zoom-mode="click"/);
+  assert.match(hoverPreview, /data-product-zoom-mode="hover"/);
+
   assert.match(runtime, /function initProductZoom/);
   assert.match(runtime, /function resetProductZoom/);
+  assert.match(runtime, /function syncProductMediaFrame/);
+  assert.match(runtime, /image\?\.naturalWidth/);
+  assert.match(runtime, /data-product-media-shape/);
   assert.match(runtime, /MutationObserver/);
+  assert.match(runtime, /root\.dataset\.productZoomMode === "hover"/);
   assert.match(runtime, /ArrowLeft/);
   assert.match(stylesheet, /\.product-zoom\[aria-pressed="true"\] img\{transform:scale\(var\(--product-zoom-scale\)\)\}/);
+  assert.match(stylesheet, /\.product-zoom\[data-product-zoom-mode="hover"\]:hover:not\(\[aria-pressed="true"\]\) img/);
+  assert.doesNotMatch(stylesheet, /\.product-zoom:hover img/);
+  assert.match(stylesheet, /body\[data-layout="technical"\] \.preview-product__media\[data-product-media-shape="landscape"\].*aspect-ratio:var\(--product-media-ratio\)/);
+  assert.match(shopifyStylesheet, /body\[data-layout="technical"\] \.main-product__media\[data-product-media-shape="landscape"\].*aspect-ratio:var\(--product-media-ratio\)/);
+  assert.match(stylesheet, /body\[data-layout="technical"\] \.product-media-gallery__alternate\{[^}]*display:block/);
+  assert.match(stylesheet, /\.product-media-gallery__alternate\{display:none\}/);
+  assert.match(stylesheet, /\.product-media-gallery--extended\{display:grid;grid-template-rows:auto minmax\(18rem,1fr\);align-self:stretch/);
+  assert.match(template, /render 'fixture-product-alternate-image'/);
+  assert.match(template, /data-product-alternate-image/);
   assert.match(stylesheet, /\.media:not\(\.product-zoom\) img\{transform:none!important\}/);
   assert.doesNotMatch(runtime, /woocommerce-product-gallery/);
 });
