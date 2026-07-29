@@ -292,6 +292,8 @@ test("Shopify cart and newsletter retain native platform submissions", async () 
   assert.match(runtime, /if \(!isNativeStorefront\)[\s\S]*?\[data-newsletter\]/);
   assert.match(runtime, /if \(isNativeStorefront\) refreshCartCount/);
   assert.equal((runtime.match(/focus\(\{ preventScroll: true \}\)/g) || []).length, 2);
+  assert.match(runtime, /drawerScrollPosition = window\.scrollY/);
+  assert.equal((runtime.match(/window\.scrollTo\(\{ top: drawerScrollPosition, behavior: "instant" \}\)/g) || []).length, 2);
   assert.match(runtime, /setCart\(false, \{ restoreFocus: false \}\)/);
 });
 

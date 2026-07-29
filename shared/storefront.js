@@ -3,6 +3,7 @@ const isNativeStorefront = body.dataset.platform === "shopify";
 const rootPath = body.dataset.root || "";
 const cartKey = `sfk-cart:${body.dataset.brand || "preview"}`;
 let drawerReturnFocus = null;
+let drawerScrollPosition = 0;
 
 const getMenuButton = () => document.querySelector("[data-menu-toggle]");
 const getNav = () => document.querySelector("#primary-nav");
@@ -71,13 +72,18 @@ function setCart(open, { restoreFocus = true } = {}) {
   body.classList.toggle("drawer-open", open);
   scrim.hidden = !open;
   if (open) {
+    drawerScrollPosition = window.scrollY;
     drawerReturnFocus = document.activeElement;
     cart.removeAttribute("inert");
-    requestAnimationFrame(() => cart.querySelector("[data-cart-close]")?.focus({ preventScroll: true }));
+    requestAnimationFrame(() => {
+      cart.querySelector("[data-cart-close]")?.focus({ preventScroll: true });
+      window.scrollTo({ top: drawerScrollPosition, behavior: "instant" });
+    });
   } else {
     cart.setAttribute("inert", "");
     if (restoreFocus && drawerReturnFocus instanceof HTMLElement) drawerReturnFocus.focus({ preventScroll: true });
     drawerReturnFocus = null;
+    window.scrollTo({ top: drawerScrollPosition, behavior: "instant" });
   }
 }
 
