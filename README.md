@@ -77,9 +77,27 @@ npm run preview -- --brand my-store --output-root ../storefront-builds
 
 The equivalent environment variables are `SFK_BRANDS_ROOT` and `SFK_OUTPUT_ROOT`. Command-line values take precedence.
 
+## One editable catalogue
+
+Each brand directory contains exactly one catalogue source: `catalog.json` or `catalog.csv`. Both formats describe the same portable product model; the CSV keeps one product per row and stores structured options, details and media rules as compact JSON cells. Builds reject a missing source and also reject two competing sources instead of guessing which one wins. Catalogue writes use a temporary file and atomic replacement so an interrupted update cannot leave half a JSON or CSV document behind.
+
 ## Shopify catalogue media
 
 Local fixture artwork travels with the theme. Shopify product CSVs leave product and variant image URLs empty because Shopify only accepts a public, importable URL. The theme prefers native variant media, then a packaged variant-specific asset, then native product media, and finally the packaged base asset. The build also emits a portable media manifest so the optional hydration step can map product and variant assets to store-specific HTTPS URLs without putting CDN details in the brand pack.
+
+## Optional Shopify products
+
+A product-grid section can show only its managed `productIds`, only a native Shopify collection, or both. Native collection products remain owned by Shopify: displaying them does not add them to the generated CSV and catalogue builds never delete them.
+
+```json
+"shopifyCatalog": {
+  "mode": "combined",
+  "collectionHandle": "seasonal-extras",
+  "productLimit": 8
+}
+```
+
+Combined grids render managed handles first, then collection-only products in the collection's order, removing duplicate handles. Omitting `shopifyCatalog` preserves the managed-only behaviour.
 
 ## Validation
 
@@ -106,7 +124,7 @@ npm run release
 ## Add a storefront
 
 1. Copy `examples/example-store` into your chosen brand-pack repository.
-2. Replace `brand.json`, `catalog.json` and the assets.
+2. Replace `brand.json`, choose one `catalog.json` or `catalog.csv`, and replace the assets.
 3. Compose the page from the supported section contract.
 4. Run the complete validation against that external root.
 5. Test product selection, cart and checkout in every native runtime being delivered.

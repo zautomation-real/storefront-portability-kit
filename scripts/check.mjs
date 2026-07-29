@@ -2,6 +2,7 @@ import { readFile, readdir, stat } from "node:fs/promises";
 import path from "node:path";
 import { isSafeSlug, parseArgs, readJson, resolveWooCommercePaths, resolveWorkspacePaths, root } from "./lib.mjs";
 import { assertUniqueShopifyVariantSkus, productVariants } from "./platform-output.mjs";
+import { readCatalogSource } from "./catalog-source.mjs";
 
 const args = parseArgs(process.argv.slice(2));
 const { brandsRoot } = resolveWorkspacePaths(args);
@@ -54,9 +55,14 @@ for (const entry of brands) {
   let catalog;
   try {
     brand = await readJson(path.join(brandDir, "brand.json"));
-    catalog = await readJson(path.join(brandDir, "catalog.json"));
   } catch (error) {
-    fail(id, `invalid JSON (${error.message})`);
+    fail(id, `invalid brand JSON (${error.message})`);
+    continue;
+  }
+  try {
+    ({ catalog } = await readCatalogSource(brandDir));
+  } catch (error) {
+    fail(id, `invalid catalog source (${error.message})`);
     continue;
   }
 

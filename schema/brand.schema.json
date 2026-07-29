@@ -115,9 +115,26 @@
         "media": { "type": "string" },
         "action": { "$ref": "#/$defs/action" },
         "items": { "type": "array" },
-        "productIds": { "type": "array", "items": { "type": "string" } }
+        "productIds": { "type": "array", "items": { "type": "string" } },
+        "shopifyCatalog": { "$ref": "#/$defs/shopifyCatalog" }
       },
       "additionalProperties": true
+    },
+    "shopifyCatalog": {
+      "type": "object",
+      "required": ["mode"],
+      "properties": {
+        "mode": { "enum": ["managed", "collection", "combined"] },
+        "collectionHandle": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+        "productLimit": { "type": "integer", "minimum": 1, "maximum": 12 }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "mode": { "enum": ["collection", "combined"] } }, "required": ["mode"] },
+          "then": { "required": ["collectionHandle"] }
+        }
+      ],
+      "additionalProperties": false
     }
   }
 }

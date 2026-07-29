@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { spawn } from "node:child_process";
 import { copyFile, mkdir, readFile } from "node:fs/promises";
 import path from "node:path";
+import { readCatalogSource } from "./catalog-source.mjs";
 import { parseArgs, readJson, resetDir, resolveWooCommercePaths, resolveWorkspacePaths, root, wooCommercePathArgs, workspacePathArgs, writeText } from "./lib.mjs";
 import { zipDirectory } from "./zip.mjs";
 
@@ -25,7 +26,7 @@ const versions = {
 };
 const brandDir = path.join(paths.brandsRoot, brandId);
 const brand = await readJson(path.join(brandDir, "brand.json"));
-const catalog = await readJson(path.join(brandDir, "catalog.json"));
+const { catalog } = await readCatalogSource(brandDir);
 if (brand.id !== brandId) throw new Error(`Brand id mismatch: expected ${brandId}, received ${brand.id}`);
 
 function runNode(script, scriptArgs) {

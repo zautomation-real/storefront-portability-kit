@@ -42,7 +42,13 @@ export function shopifyIndexTemplate(brand) {
       base.settings.action_label = section.action.label;
       base.settings.action_url = section.action.href;
     }
-    if (section.type === "product-grid") base.settings.product_handles = (section.productIds || []).join(",");
+    if (section.type === "product-grid") {
+      const shopifyCatalog = section.shopifyCatalog || {};
+      base.settings.product_handles = (section.productIds || []).join(",");
+      base.settings.catalog_source = shopifyCatalog.mode || "managed";
+      base.settings.optional_collection = shopifyCatalog.collectionHandle || "";
+      base.settings.maximum_products = shopifyCatalog.productLimit || 6;
+    }
     if (["proof-strip", "steps", "testimonials", "comparison"].includes(section.type)) {
       base.blocks = blocks(section.items, (item) => item);
       base.block_order = Object.keys(base.blocks);
@@ -97,7 +103,7 @@ function scriptSafeJson(value) {
   return JSON.stringify(value).replaceAll("<", "\\u003c");
 }
 
-function shopifyVariantSku(brand, product, variant) {
+export function shopifyVariantSku(brand, product, variant) {
   return `${brand.id}-${product.id}-${variant.values.map((value) => skuPart(value.label)).join("-")}`;
 }
 

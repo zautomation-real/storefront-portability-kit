@@ -265,6 +265,56 @@ test("Shopify composition includes portable section settings and blocks", () => 
   assert.equal(template.sections["01_comparison"].block_order.length, 1);
 });
 
+test("Shopify product grids expose an explicit managed, collection or combined catalogue source", async () => {
+  const configured = {
+    ...brand,
+    sections: [{
+      type: "product-grid",
+      id: "shop",
+      title: "Shop",
+      productIds: ["configured-product", "second-product"],
+      shopifyCatalog: { mode: "combined", collectionHandle: "seasonal-extras", productLimit: 10 }
+    }]
+  };
+  const template = JSON.parse(shopifyIndexTemplate(configured));
+  const settings = template.sections["01_product_grid"].settings;
+
+  assert.equal(settings.product_handles, "configured-product,second-product");
+  assert.equal(settings.catalog_source, "combined");
+  assert.equal(settings.optional_collection, "seasonal-extras");
+  assert.equal(settings.maximum_products, 10);
+
+  const managedOnly = JSON.parse(shopifyIndexTemplate({
+    ...configured,
+    sections: [{ ...configured.sections[0], shopifyCatalog: undefined }]
+  })).sections["01_product_grid"].settings;
+  assert.equal(managedOnly.catalog_source, "managed");
+  assert.equal(managedOnly.optional_collection, "");
+  assert.equal(managedOnly.maximum_products, 6);
+
+  const section = await readFile(new URL("../adapters/shopify/sections/product-grid.liquid", import.meta.url), "utf8");
+  assert.match(section, /catalog_source == 'managed' or catalog_source == 'combined'/);
+  assert.match(section, /catalog_source == 'collection' or catalog_source == 'combined'/);
+  assert.match(section, /section\.settings\.optional_collection\.products/);
+  assert.match(section, /unless rendered_handles contains product_token/);
+  assert.match(section, /rendered_products >= maximum_products/);
+  assert.ok(section.indexOf("{% if include_managed %}") < section.indexOf("{% if include_collection"));
+  assert.match(section, /Products from this native collection are read by the theme only\. They are not imported into or deleted from the managed catalog\./);
+});
+
+test("the brand contract keeps Shopify-only collections opt-in and bounded", async () => {
+  const schema = JSON.parse(await readFile(new URL("../schema/brand.schema.json", import.meta.url), "utf8"));
+  const contract = schema.$defs.shopifyCatalog;
+
+  assert.deepEqual(contract.required, ["mode"]);
+  assert.deepEqual(contract.properties.mode.enum, ["managed", "collection", "combined"]);
+  assert.equal(contract.properties.collectionHandle.pattern, "^[a-z0-9]+(?:-[a-z0-9]+)*$");
+  assert.equal(contract.properties.productLimit.minimum, 1);
+  assert.equal(contract.properties.productLimit.maximum, 12);
+  assert.deepEqual(contract.allOf[0].then.required, ["collectionHandle"]);
+  assert.equal(contract.additionalProperties, false);
+});
+
 test("optional product details become escaped rich descriptions on every target", () => {
   const detailedProduct = {
     ...product,

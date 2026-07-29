@@ -1,31 +1,74 @@
+{% liquid
+  assign catalog_source = section.settings.catalog_source | default: 'managed'
+  assign maximum_products = section.settings.maximum_products | default: 6
+  assign include_managed = false
+  assign include_collection = false
+  assign rendered_products = 0
+  assign rendered_handles = '|'
+
+  if catalog_source == 'managed' or catalog_source == 'combined'
+    assign include_managed = true
+  endif
+  if catalog_source == 'collection' or catalog_source == 'combined'
+    assign include_collection = true
+  endif
+%}
+
 <section class="section product-section" id="{{ section.settings.anchor_id | default: 'shop' | handle }}">
   <div class="section-heading"><p class="eyebrow">{{ section.settings.eyebrow | escape }}</p><h2>{{ section.settings.title | escape }}</h2><p class="section-intro">{{ section.settings.body | escape }}</p></div>
   <div class="product-grid">
-    {% assign rendered_products = 0 %}
-    {% assign featured_products = section.settings.products %}
-    {% if featured_products != blank %}
-      {% for product in featured_products limit: 6 %}
-        {% render 'product-card', product: product %}
-        {% assign rendered_products = rendered_products | plus: 1 %}
-      {% endfor %}
-    {% elsif section.settings.product_handles != blank %}
-      {% assign handles = section.settings.product_handles | split: ',' %}
-      {% for handle in handles limit: 6 %}
-        {% assign clean_handle = handle | strip %}
-        {% assign product = all_products[clean_handle] %}
-        {% if product != blank %}
-          {% render 'product-card', product: product %}
-          {% assign rendered_products = rendered_products | plus: 1 %}
-        {% endif %}
-      {% endfor %}
-    {% else %}
-      {% for product in collections.all.products %}
-        {% if rendered_products < 6 %}
-          {% if settings.catalog_vendor == blank or product.vendor == settings.catalog_vendor %}
+    {% if include_managed %}
+      {% assign featured_products = section.settings.products %}
+      {% if featured_products != blank %}
+        {% for product in featured_products %}
+          {% if rendered_products >= maximum_products %}{% break %}{% endif %}
+          {% assign product_token = product.handle | prepend: '|' | append: '|' %}
+          {% unless rendered_handles contains product_token %}
             {% render 'product-card', product: product %}
             {% assign rendered_products = rendered_products | plus: 1 %}
+            {% assign rendered_handles = rendered_handles | append: product.handle | append: '|' %}
+          {% endunless %}
+        {% endfor %}
+      {% elsif section.settings.product_handles != blank %}
+        {% assign handles = section.settings.product_handles | split: ',' %}
+        {% for handle in handles %}
+          {% if rendered_products >= maximum_products %}{% break %}{% endif %}
+          {% assign clean_handle = handle | strip %}
+          {% assign product = all_products[clean_handle] %}
+          {% if product != blank %}
+            {% assign product_token = product.handle | prepend: '|' | append: '|' %}
+            {% unless rendered_handles contains product_token %}
+              {% render 'product-card', product: product %}
+              {% assign rendered_products = rendered_products | plus: 1 %}
+              {% assign rendered_handles = rendered_handles | append: product.handle | append: '|' %}
+            {% endunless %}
           {% endif %}
-        {% endif %}
+        {% endfor %}
+      {% else %}
+        {% comment %}Legacy sections without generated handles keep their previous vendor-filtered fallback.{% endcomment %}
+        {% for product in collections.all.products %}
+          {% if rendered_products >= maximum_products %}{% break %}{% endif %}
+          {% if settings.catalog_vendor == blank or product.vendor == settings.catalog_vendor %}
+            {% assign product_token = product.handle | prepend: '|' | append: '|' %}
+            {% unless rendered_handles contains product_token %}
+              {% render 'product-card', product: product %}
+              {% assign rendered_products = rendered_products | plus: 1 %}
+              {% assign rendered_handles = rendered_handles | append: product.handle | append: '|' %}
+            {% endunless %}
+          {% endif %}
+        {% endfor %}
+      {% endif %}
+    {% endif %}
+
+    {% if include_collection and section.settings.optional_collection != blank %}
+      {% for product in section.settings.optional_collection.products %}
+        {% if rendered_products >= maximum_products %}{% break %}{% endif %}
+        {% assign product_token = product.handle | prepend: '|' | append: '|' %}
+        {% unless rendered_handles contains product_token %}
+          {% render 'product-card', product: product %}
+          {% assign rendered_products = rendered_products | plus: 1 %}
+          {% assign rendered_handles = rendered_handles | append: product.handle | append: '|' %}
+        {% endunless %}
       {% endfor %}
     {% endif %}
     {% if rendered_products == 0 %}
@@ -46,8 +89,15 @@
     { "type": "textarea", "id": "body", "label": "Body" },
     { "type": "text", "id": "empty_text", "label": "Empty state", "default": "The next collection is being prepared." },
     { "type": "text", "id": "search_label", "label": "Search link", "default": "Search the store" },
-    { "type": "text", "id": "product_handles", "label": "Fallback product handles", "info": "Comma-separated handles used before products are selected in the editor." },
-    { "type": "product_list", "id": "products", "label": "Products", "limit": 6 }
+    { "type": "select", "id": "catalog_source", "label": "Catalog source", "default": "managed", "options": [
+      { "value": "managed", "label": "Managed products" },
+      { "value": "collection", "label": "Shopify collection" },
+      { "value": "combined", "label": "Managed products + Shopify collection" }
+    ] },
+    { "type": "text", "id": "product_handles", "label": "Managed product handles", "info": "Generated from the brand pack. Comma-separated handles are also accepted for legacy sections." },
+    { "type": "product_list", "id": "products", "label": "Managed products", "info": "Optional editor override for the generated handles.", "limit": 12 },
+    { "type": "collection", "id": "optional_collection", "label": "Shopify collection", "info": "Products from this native collection are read by the theme only. They are not imported into or deleted from the managed catalog." },
+    { "type": "range", "id": "maximum_products", "label": "Maximum products", "min": 1, "max": 12, "step": 1, "default": 6 }
   ],
   "presets": [{ "name": "Product grid" }]
 }
