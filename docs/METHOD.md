@@ -35,6 +35,6 @@ Automated checks reject broken media references, duplicate product or section ID
 
 ## 5. Add another brand
 
-Create `<brand-root>/<id>/brand.json`, `catalog.json` and an `assets` folder. Choose a composition already supported by the section contract or add a new implementation to the public Shopify adapter and every authorised platform extension before using it.
+Create `<brand-root>/<id>/brand.json`, `catalog.json` and a flat `assets` folder. Brand, product and section IDs use lowercase URL-safe slugs; nested asset directories are rejected so every validated media path is guaranteed to reach every generated target. Choose a composition already supported by the section contract or add a new implementation to the public Shopify adapter and every authorised platform extension before using it.
 
 Do not start by styling a generic shop. Start with the uncertainty that prevents a buyer from acting, then choose the sections that remove it. That is what allows the shared method to produce stores that feel commercially specific rather than templated.

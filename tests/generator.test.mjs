@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
 import test from "node:test";
-import { presentationLayout, productBodyHtml, productMediaFocalPoint, productZoomMode } from "../scripts/lib.mjs";
+import { assertSafeSlug, copyDirectoryFlat, isSafeSlug, presentationLayout, productBodyHtml, productMediaFocalPoint, productZoomMode } from "../scripts/lib.mjs";
 import { renderProductPreview } from "../scripts/render-preview.mjs";
 import { cardMediaChoices, combineShopifyProductCsv, productVariants, resolveVariantMedia, shopifyCardMediaSelectorSnippet, shopifyFallbackFooterSnippet, shopifyFallbackNavigationSnippet, shopifyFixtureImageSnippet, shopifyIndexTemplate, shopifyMediaManifest, shopifyPasswordTemplate, shopifyProductCsv, shopifyVariantMediaJsonSnippet, validateVariantMediaRules, wooProductCsv } from "../scripts/platform-output.mjs";
 
@@ -48,6 +50,26 @@ const cardSelectorProduct = {
     ]
   }
 };
+
+test("path-bearing identifiers are restricted to safe slugs", () => {
+  for (const value of ["demo-01", "large-product-6", "product9"]) assert.equal(isSafeSlug(value), true);
+  for (const value of ["../escape", "nested/path", "Uppercase", "double--hyphen", ""]) assert.equal(isSafeSlug(value), false);
+  assert.throws(() => assertSafeSlug("../escape", "Product id"), /Product id must use/);
+});
+
+test("flat asset copying fails instead of silently dropping nested assets", async () => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), "storefront-flat-assets-"));
+  try {
+    const source = path.join(directory, "source");
+    await mkdir(path.join(source, "nested"), { recursive: true });
+    await assert.rejects(
+      copyDirectoryFlat(source, path.join(directory, "destination")),
+      /Brand assets must be flat/
+    );
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
 
 test("presentation layouts use a closed public preset vocabulary", () => {
   assert.equal(presentationLayout({ presentation: { layout: "editorial" } }), "editorial");

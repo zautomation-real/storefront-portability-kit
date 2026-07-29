@@ -1,11 +1,12 @@
 import { rm, stat } from "node:fs/promises";
 import path from "node:path";
-import { assertNoBuildTokens, copyDirectoryFlat, copyIfPresent, parseArgs, presentationLayout, productZoomMode, readJson, replaceTokens, resetDir, resolveWooCommercePaths, resolveWorkspacePaths, root, writeText } from "./lib.mjs";
+import { assertNoBuildTokens, assertSafeSlug, copyDirectoryFlat, copyIfPresent, parseArgs, presentationLayout, productZoomMode, readJson, replaceTokens, resetDir, resolveWooCommercePaths, resolveWorkspacePaths, root, writeText } from "./lib.mjs";
 import { renderCartPreview, renderPreview, renderProductPreview } from "./render-preview.mjs";
 import { brandCss, shopifyCardMediaSelectorSnippet, shopifyFallbackFooterSnippet, shopifyFallbackNavigationSnippet, shopifyFixtureImageSnippet, shopifyIndexTemplate, shopifyMediaManifest, shopifyPasswordTemplate, shopifyProductCsv, shopifyVariantMediaJsonSnippet, wooProductCsv } from "./platform-output.mjs";
 
 const args = parseArgs(process.argv.slice(2));
 const brandId = args.brand || "example-store";
+assertSafeSlug(brandId, "Brand id");
 const target = args.target || "preview";
 const { brandsRoot, outputRoot: generatedRoot } = resolveWorkspacePaths(args);
 const { adapterRoot: wooCommerceAdapterRoot } = resolveWooCommercePaths(args);
@@ -15,6 +16,8 @@ const catalog = await readJson(path.join(brandDir, "catalog.json"));
 const outputRoot = path.join(generatedRoot, brandId);
 
 if (brand.id !== brandId) throw new Error(`Brand id mismatch: expected ${brandId}, received ${brand.id}`);
+assertSafeSlug(brand.id, "brand.id");
+for (const product of catalog.products || []) assertSafeSlug(product.id, "Product id");
 
 async function buildPreview() {
   const output = path.join(outputRoot, "preview");

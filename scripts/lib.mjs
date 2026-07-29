@@ -5,6 +5,16 @@ export const root = path.resolve(import.meta.dirname, "..");
 
 const presentationLayouts = new Set(["standard", "editorial", "technical"]);
 const productZoomModes = new Set(["click", "hover"]);
+const safeSlugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+export function isSafeSlug(value) {
+  return typeof value === "string" && safeSlugPattern.test(value);
+}
+
+export function assertSafeSlug(value, label = "Identifier") {
+  if (!isSafeSlug(value)) throw new Error(`${label} must use lowercase letters, numbers and single hyphens only`);
+  return value;
+}
 
 export function presentationLayout(brand) {
   const candidate = brand?.presentation?.layout;
@@ -58,6 +68,9 @@ export async function copyDirectoryFlat(source, destination, prefix = "") {
     throw error;
   }
   for (const entry of entries) {
+    if (entry.isDirectory()) {
+      throw new Error(`Brand assets must be flat; nested directory found: ${path.join(source, entry.name)}`);
+    }
     if (!entry.isFile() || entry.name.endsWith("-source.png")) continue;
     await cp(path.join(source, entry.name), path.join(destination, `${prefix}${entry.name}`));
   }

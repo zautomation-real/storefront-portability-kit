@@ -1,6 +1,6 @@
 import { readFile, readdir, stat } from "node:fs/promises";
 import path from "node:path";
-import { parseArgs, readJson, resolveWooCommercePaths, resolveWorkspacePaths, root } from "./lib.mjs";
+import { isSafeSlug, parseArgs, readJson, resolveWooCommercePaths, resolveWorkspacePaths, root } from "./lib.mjs";
 import { assertUniqueShopifyVariantSkus, productVariants } from "./platform-output.mjs";
 
 const args = parseArgs(process.argv.slice(2));
@@ -30,7 +30,7 @@ function optionValue(value) {
 }
 
 async function checkAsset(brandDir, scope, relative) {
-  if (!isNonEmpty(relative) || !/^assets\/[a-z0-9][a-z0-9._/-]*$/i.test(relative) || relative.includes("..")) {
+  if (!isNonEmpty(relative) || !/^assets\/[a-z0-9][a-z0-9._-]*$/i.test(relative)) {
     fail(scope, `invalid asset path ${JSON.stringify(relative)}`);
     return;
   }
@@ -60,7 +60,9 @@ for (const entry of brands) {
     continue;
   }
 
+  if (!isSafeSlug(id)) fail(id, "brand directory must use lowercase letters, numbers and single hyphens only");
   if (brand.id !== id) fail(id, "brand.id must match its directory");
+  if (!isSafeSlug(brand.id)) fail(id, "brand.id must use lowercase letters, numbers and single hyphens only");
   for (const key of ["displayName", "vertical", "locale", "currency", "announcement"]) {
     if (!isNonEmpty(brand[key])) fail(id, `${key} is required`);
   }
@@ -86,7 +88,7 @@ for (const entry of brands) {
   const productIds = new Set();
   for (const product of catalog.products || []) {
     const scope = `${id}/${product.id || "product"}`;
-    if (!isNonEmpty(product.id)) fail(scope, "product id is required");
+    if (!isSafeSlug(product.id)) fail(scope, "product id must use lowercase letters, numbers and single hyphens only");
     if (productIds.has(product.id)) fail(scope, `duplicate product id ${product.id}`);
     productIds.add(product.id);
     if (!isNonEmpty(product.name) || !isNonEmpty(product.category) || !isNonEmpty(product.description)) fail(scope, "name, category and description are required");
@@ -177,7 +179,7 @@ for (const entry of brands) {
   for (const section of brand.sections || []) {
     const scope = `${id}/section:${section.id || section.type || "unknown"}`;
     if (!supportedSections.includes(section.type)) fail(scope, `unsupported section type ${section.type}`);
-    if (!isNonEmpty(section.id)) fail(scope, "every section needs a stable id");
+    if (!isSafeSlug(section.id)) fail(scope, "section id must use lowercase letters, numbers and single hyphens only");
     if (anchors.has(section.id)) fail(scope, `duplicate section id ${section.id}`);
     anchors.add(section.id);
     if (section.media) await checkAsset(brandDir, scope, section.media);
