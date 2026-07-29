@@ -477,10 +477,28 @@ test("related products become a draggable single-row rail at compact widths", as
   assert.match(runtime, /function initRelatedCarousel/);
   assert.match(runtime, /function updateRelatedCarousel/);
   assert.match(runtime, /setPointerCapture/);
+  const relatedRuntime = runtime.slice(runtime.indexOf("function initRelatedCarousel"), runtime.indexOf("function escapeMarkup"));
+  assert.ok(
+    relatedRuntime.indexOf("Math.abs(delta) >= 5") < relatedRuntime.indexOf("track.setPointerCapture?.(event.pointerId)"),
+    "the carousel must capture the pointer only after a real drag starts"
+  );
+  assert.ok(
+    relatedRuntime.indexOf("track.setPointerCapture?.(event.pointerId)") < relatedRuntime.indexOf('track.dataset.carouselDragging = "true"'),
+    "the drag threshold should capture the pointer before scrolling"
+  );
   assert.match(runtime, /scrollBy/);
   assert.match(stylesheet, /\.product-grid--related[^}]+display:flex[^}]+overflow-x:auto/);
   assert.match(stylesheet, /scroll-snap-type:x mandatory/);
   assert.match(stylesheet, /\.product-grid--related \.product-card\{flex:0 0/);
+});
+
+test("Shopify keeps sold-out configurations explorable while blocking their purchase", async () => {
+  const template = await readFile(new URL("../adapters/shopify/sections/main-product.liquid", import.meta.url), "utf8");
+
+  assert.match(template, /const hasVariantMatch = variants\.some\(\(variant\) => variant\.options\.every/);
+  assert.doesNotMatch(template, /const hasAvailableMatch = variants\.some\(\(variant\) => variant\.available/);
+  assert.match(template, /input\.disabled = !hasVariantMatch && !input\.checked/);
+  assert.match(template, /submit\.disabled = !available/);
 });
 
 test("Shopify keeps the section wrapper sticky instead of constraining the menu", async () => {

@@ -313,12 +313,12 @@
       const values = selectedOptions();
       optionInputs.forEach((input) => {
         const optionIndex = Number(input.dataset.optionIndex);
-        const hasAvailableMatch = variants.some((variant) => variant.available && variant.options.every((value, index) => {
+        const hasVariantMatch = variants.some((variant) => variant.options.every((value, index) => {
           if (index === optionIndex) return value === input.value;
           if (index < optionIndex) return !values[index] || value === values[index];
           return true;
         }));
-        input.disabled = !hasAvailableMatch && !input.checked;
+        input.disabled = !hasVariantMatch && !input.checked;
         input.setAttribute("aria-disabled", String(input.disabled));
       });
     };

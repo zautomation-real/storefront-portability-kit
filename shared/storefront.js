@@ -248,13 +248,13 @@ function initRelatedCarousel(track) {
     state.startX = event.clientX;
     state.startScroll = track.scrollLeft;
     state.dragged = false;
-    track.setPointerCapture?.(event.pointerId);
   });
   track.addEventListener("pointermove", (event) => {
     if (state.pointerId !== event.pointerId) return;
     const delta = event.clientX - state.startX;
     if (!state.dragged && Math.abs(delta) >= 5) {
       state.dragged = true;
+      track.setPointerCapture?.(event.pointerId);
       track.dataset.carouselDragging = "true";
     }
     if (!state.dragged) return;
