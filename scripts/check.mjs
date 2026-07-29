@@ -1,7 +1,7 @@
 import { readFile, readdir, stat } from "node:fs/promises";
 import path from "node:path";
 import { parseArgs, readJson, resolveWooCommercePaths, resolveWorkspacePaths, root } from "./lib.mjs";
-import { productVariants } from "./platform-output.mjs";
+import { assertUniqueShopifyVariantSkus, productVariants } from "./platform-output.mjs";
 
 const args = parseArgs(process.argv.slice(2));
 const { brandsRoot } = resolveWorkspacePaths(args);
@@ -92,6 +92,7 @@ for (const entry of brands) {
     const options = product.options || [];
     if (!Array.isArray(options) || options.length > 3) fail(scope, "products support at most 3 options");
     const optionNames = new Set();
+    const optionValuesByName = new Map();
     for (const option of options) {
       if (!isNonEmpty(option.name)) fail(scope, "each option needs a name");
       if (optionNames.has(option.name)) fail(scope, `duplicate option name ${option.name}`);
@@ -106,10 +107,51 @@ for (const entry of brands) {
         if (!Number.isInteger(value.priceModifier)) fail(scope, `${option.name || "option"}/${value.label} priceModifier must be an integer`);
         if (product.price + value.priceModifier < 0) fail(scope, `${option.name || "option"}/${value.label} produces a negative price`);
       }
+      optionValuesByName.set(option.name, values);
     }
-    const variants = productVariants(product);
-    if (variants.length > 100) fail(scope, `${variants.length} variants exceed the 100-variant fixture limit`);
-    if (variants.some((variant) => !Number.isInteger(variant.price) || variant.price < 0)) fail(scope, "every generated variant needs a valid price");
+
+    const mediaRules = product.variantMedia || [];
+    if (!Array.isArray(mediaRules)) {
+      fail(scope, "variantMedia must be an array");
+    } else {
+      const fingerprints = new Set();
+      for (const [index, rule] of mediaRules.entries()) {
+        const ruleScope = `${scope}/variantMedia:${index + 1}`;
+        if (!rule || typeof rule !== "object" || Array.isArray(rule)) {
+          fail(ruleScope, "rule must be an object");
+          continue;
+        }
+        const match = rule.match;
+        if (!match || typeof match !== "object" || Array.isArray(match) || !Object.keys(match).length) {
+          fail(ruleScope, "match must contain at least one option");
+        } else {
+          const fingerprint = JSON.stringify(Object.entries(match).sort(([left], [right]) => left.localeCompare(right)));
+          if (fingerprints.has(fingerprint)) fail(ruleScope, "duplicates an earlier match rule");
+          fingerprints.add(fingerprint);
+          for (const [name, value] of Object.entries(match)) {
+            if (!optionValuesByName.has(name)) fail(ruleScope, `references missing option ${name}`);
+            else if (!optionValuesByName.get(name).has(value)) fail(ruleScope, `references missing value ${name}=${value}`);
+          }
+        }
+        if (rule.alt != null && !isNonEmpty(rule.alt)) fail(ruleScope, "alt must be non-empty text when supplied");
+        await checkAsset(brandDir, ruleScope, rule.image);
+      }
+    }
+    try {
+      const variants = productVariants(product);
+      if (variants.length > 100) fail(scope, `${variants.length} variants exceed the 100-variant fixture limit`);
+      if (variants.some((variant) => !Number.isInteger(variant.price) || variant.price < 0)) fail(scope, "every generated variant needs a valid price");
+    } catch (error) {
+      fail(scope, error.message);
+    }
+  }
+
+  if (Array.isArray(catalog.products)) {
+    try {
+      assertUniqueShopifyVariantSkus(brand, catalog);
+    } catch (error) {
+      fail(id, error.message);
+    }
   }
 
   const anchors = new Set(["top"]);

@@ -17,7 +17,7 @@
       {% if product.featured_image %}
         {{ product.featured_image | image_url: width: 900 | image_tag: widths: '360,540,720,900', loading: 'lazy', alt: product.title }}
       {% else %}
-        {% render 'fixture-product-image', product: product, loading: 'lazy' %}
+        {% render 'fixture-product-image', product: product, variant: card_variant, loading: 'lazy' %}
       {% endif %}
     </div>
     {% if product_badge != blank %}<span class="product-card__badge">{{ product_badge | escape }}</span>{% endif %}

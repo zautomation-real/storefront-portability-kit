@@ -11,11 +11,11 @@
         {% for item in cart.items %}
           <article class="cart-line">
             <a class="media cart-line__media" href="{{ item.url }}">
-              {% if item.image %}
-                {% assign cart_image_alt = item.image.alt | default: item.product.title %}
-                {{ item.image | image_url: width: 360 | image_tag: widths: '180,270,360', loading: 'lazy', alt: cart_image_alt }}
+              {% if item.variant.featured_image %}
+                {% assign cart_image_alt = item.variant.featured_image.alt | default: item.product.title %}
+                {{ item.variant.featured_image | image_url: width: 360 | image_tag: widths: '180,270,360', loading: 'lazy', alt: cart_image_alt }}
               {% else %}
-                {% render 'fixture-product-image', product: item.product, loading: 'lazy' %}
+                {% render 'fixture-product-image', product: item.product, variant: item.variant, loading: 'lazy' %}
               {% endif %}
             </a>
             <div>

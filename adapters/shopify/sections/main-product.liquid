@@ -12,10 +12,10 @@
 
 <section class="main-product" id="MainProduct-{{ section.id }}">
   <div class="media main-product__media">
-    {% if product.featured_image %}
-      {{ product.featured_image | image_url: width: 1400 | image_tag: widths: '500,800,1100,1400', loading: 'eager', fetchpriority: 'high' }}
+    {% if selected_variant.featured_image %}
+      {{ selected_variant.featured_image | image_url: width: 1400 | image_tag: widths: '500,800,1100,1400', loading: 'eager', fetchpriority: 'high' }}
     {% else %}
-      {% render 'fixture-product-image', product: product, loading: 'eager' %}
+      {% render 'fixture-product-image', product: product, variant: selected_variant, loading: 'eager' %}
     {% endif %}
   </div>
 
@@ -160,6 +160,7 @@
     <script type="application/json" data-product-variants>
       [
         {% for variant in product.variants %}
+          {% capture variant_image_srcset %}{% if variant.featured_image %}{{ variant.featured_image | image_url: width: 500 }} 500w, {{ variant.featured_image | image_url: width: 800 }} 800w, {{ variant.featured_image | image_url: width: 1100 }} 1100w, {{ variant.featured_image | image_url: width: 1400 }} 1400w{% endif %}{% endcapture %}
           {
             "id": {{ variant.id | json }},
             "available": {{ variant.available | json }},
@@ -167,11 +168,19 @@
             "price": {{ variant.price | json }},
             "price_formatted": {{ variant.price | money | json }},
             "compare_at_price": {{ variant.compare_at_price | default: 0 | json }},
-            "compare_at_price_formatted": {% if variant.compare_at_price > variant.price %}{{ variant.compare_at_price | money | json }}{% else %}""{% endif %}
+            "compare_at_price_formatted": {% if variant.compare_at_price > variant.price %}{{ variant.compare_at_price | money | json }}{% else %}""{% endif %},
+            "media": {% if variant.featured_image %}{
+              "src": {{ variant.featured_image | image_url: width: 1400 | json }},
+              "srcset": {{ variant_image_srcset | strip | json }},
+              "alt": {{ variant.featured_image.alt | default: product.title | json }},
+              "width": {{ variant.featured_image.width | json }},
+              "height": {{ variant.featured_image.height | json }}
+            }{% else %}null{% endif %}
           }{% unless forloop.last %},{% endunless %}
         {% endfor %}
       ]
     </script>
+    <script type="application/json" data-fixture-variant-media>{% render 'fixture-variant-media', product: product %}</script>
   </div>
 </section>
 
@@ -185,6 +194,8 @@
     const optionsRoot = form?.querySelector("[data-product-options]");
     const optionInputs = [...(form?.querySelectorAll("[data-product-option]") || [])];
     const variantsElement = root.querySelector("[data-product-variants]");
+    const fixtureMediaElement = root.querySelector("[data-fixture-variant-media]");
+    const mediaImage = root.querySelector(".main-product__media img");
     const price = root.querySelector("[data-product-price]");
     const compare = root.querySelector("[data-product-compare]");
     const submit = form?.querySelector("[data-product-submit]");
@@ -195,11 +206,17 @@
     const addLabel = submit?.dataset.addLabel || "Add to bag";
     const soldOutLabel = submit?.dataset.soldOutLabel || "Sold out";
     let variants = [];
+    let fixtureMedia = {};
 
     try {
       variants = JSON.parse(variantsElement?.textContent || "[]");
     } catch {
       variants = [];
+    }
+    try {
+      fixtureMedia = JSON.parse(fixtureMediaElement?.textContent || "{}");
+    } catch {
+      fixtureMedia = {};
     }
 
     if (!form || !variantId || !submit) return;
@@ -223,6 +240,27 @@
       return variants.find((variant) => variant.options.every((value, index) => value === values[index]));
     };
 
+    const fixtureMediaForVariant = (variant) => {
+      if (!variant) return fixtureMedia.fallback;
+      const selection = Object.fromEntries((fixtureMedia.optionNames || []).map((name, index) => [name, variant.options[index]]));
+      const matches = (fixtureMedia.rules || [])
+        .filter((rule) => Object.entries(rule.match || {}).every(([name, value]) => selection[name] === value))
+        .sort((left, right) => Object.keys(right.match || {}).length - Object.keys(left.match || {}).length);
+      return matches[0] || fixtureMedia.fallback;
+    };
+
+    const updateMedia = (variant) => {
+      if (!mediaImage) return;
+      const media = variant?.media || fixtureMediaForVariant(variant);
+      if (!media?.src) return;
+      mediaImage.src = media.src;
+      if (media.srcset) mediaImage.srcset = media.srcset;
+      else mediaImage.removeAttribute("srcset");
+      mediaImage.alt = media.alt || submit.dataset.productTitle || "";
+      if (media.width) mediaImage.width = media.width;
+      if (media.height) mediaImage.height = media.height;
+    };
+
     const updateEngraving = () => {
       if (!engravingProperty || !engravingInput) return;
       const engravingChoice = optionInputs.find((input) => input.checked && input.hasAttribute("data-requires-engraving"));
@@ -234,6 +272,7 @@
       engravingInput.disabled = !required;
       engravingInput.required = required;
       engravingInput.maxLength = maximum;
+      if (!required) engravingInput.value = "";
       if (engravingLimit) engravingLimit.textContent = String(maximum);
     };
 
@@ -262,6 +301,7 @@
       submit.setAttribute("aria-label", `${available ? addLabel : soldOutLabel} — ${submit.dataset.productTitle || ""}`);
 
       if (variant && price) price.textContent = variant.price_formatted;
+      updateMedia(variant);
       if (compare) {
         const showCompare = Boolean(variant?.compare_at_price > variant?.price && variant.compare_at_price_formatted);
         compare.textContent = showCompare ? variant.compare_at_price_formatted : "";

@@ -16,18 +16,20 @@
         {{ form.errors | default_errors }}
       </div>
     {% endif %}
-    <label for="NewsletterEmail-{{ section.id }}"><span>{{ section.settings.email_label | escape }}</span></label>
-    <input
-      id="NewsletterEmail-{{ section.id }}"
-      type="email"
-      name="contact[email]"
-      value="{{ form.email | escape }}"
-      required
-      autocomplete="email"
-      autocapitalize="off"
-      autocorrect="off"
-      {% if form.errors %}aria-invalid="true" aria-describedby="NewsletterError-{{ section.id }}"{% endif %}
-    >
+    <label for="NewsletterEmail-{{ section.id }}">
+      <span>{{ section.settings.email_label | escape }}</span>
+      <input
+        id="NewsletterEmail-{{ section.id }}"
+        type="email"
+        name="contact[email]"
+        value="{{ form.email | escape }}"
+        required
+        autocomplete="email"
+        autocapitalize="off"
+        autocorrect="off"
+        {% if form.errors %}aria-invalid="true" aria-describedby="NewsletterError-{{ section.id }}"{% endif %}
+      >
+    </label>
     <button class="button" type="submit">{{ section.settings.button_label | escape }}</button>
     <p class="newsletter__privacy">
       {{ section.settings.privacy_text | escape }}

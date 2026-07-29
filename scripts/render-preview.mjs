@@ -1,4 +1,5 @@
 import { escapeHtml, formatMoney, presentationLayout } from "./lib.mjs";
+import { productVariants } from "./platform-output.mjs";
 
 const action = (item, className = "button") =>
   `<a class="${className}" href="${escapeHtml(item.href)}">${escapeHtml(item.label)}</a>`;
@@ -179,13 +180,21 @@ export function renderProductPreview(brand, product) {
   const price = formatMoney(product.price, brand.locale, brand.currency);
   const compare = product.compareAtPrice ? `<s>${formatMoney(product.compareAtPrice, brand.locale, brand.currency)}</s>` : "";
   const options = product.options || [];
+  const variants = productVariants(product);
+  const initialMedia = variants[0].media;
+  const variantMedia = JSON.stringify(variants.map((variant) => ({
+    options: variant.values.map((value) => value.label),
+    src: `${rootPath}${variant.media.image}`,
+    asset: variant.media.image,
+    alt: variant.media.alt
+  }))).replaceAll("<", "\\u003c");
   const content = `<main id="main"><section class="preview-product">
-    <div class="media preview-product__media"><img src="${rootPath}${escapeHtml(product.image)}" alt="${escapeHtml(product.name)}" width="1200" height="1400" loading="eager" fetchpriority="high"></div>
+    <div class="media preview-product__media"><img src="${rootPath}${escapeHtml(initialMedia.image)}" alt="${escapeHtml(initialMedia.alt)}" width="1200" height="1400" loading="eager" fetchpriority="high" data-preview-product-image></div>
     <div class="preview-product__content"><p class="eyebrow">${escapeHtml(product.category)}</p><h1>${escapeHtml(product.name)}</h1><p class="preview-product__price" data-preview-price data-base-compare="${product.compareAtPrice || 0}">${price} ${compare}</p><p class="preview-product__description">${escapeHtml(product.description)}</p>
-      <form class="preview-product__form">${options.map((option) => `<label><span>${escapeHtml(option.name)}</span><select name="${escapeHtml(option.name)}" data-product-option data-option-name="${escapeHtml(option.name)}">${option.values.map((rawValue) => { const value = typeof rawValue === "string" ? { label: rawValue, priceModifier: 0 } : rawValue; const change = value.priceModifier ? ` (${value.priceModifier > 0 ? "+" : "−"}${formatMoney(Math.abs(value.priceModifier), brand.locale, brand.currency)})` : ""; return `<option value="${escapeHtml(value.label)}" data-price-modifier="${value.priceModifier || 0}">${escapeHtml(value.label)}${change}</option>`; }).join("")}</select></label>`).join("")}<button class="button button--full" type="button" data-add-to-cart data-product-id="${escapeHtml(product.id)}" data-product="${escapeHtml(product.name)}" data-image="${escapeHtml(product.image)}" data-base-price="${product.price}" data-price="${product.price}">Add to bag</button></form>
+      <form class="preview-product__form">${options.map((option) => `<label><span>${escapeHtml(option.name)}</span><select name="${escapeHtml(option.name)}" data-product-option data-option-name="${escapeHtml(option.name)}">${option.values.map((rawValue) => { const value = typeof rawValue === "string" ? { label: rawValue, priceModifier: 0 } : rawValue; const change = value.priceModifier ? ` (${value.priceModifier > 0 ? "+" : "−"}${formatMoney(Math.abs(value.priceModifier), brand.locale, brand.currency)})` : ""; return `<option value="${escapeHtml(value.label)}" data-price-modifier="${value.priceModifier || 0}">${escapeHtml(value.label)}${change}</option>`; }).join("")}</select></label>`).join("")}<button class="button button--full" type="button" data-add-to-cart data-product-id="${escapeHtml(product.id)}" data-product="${escapeHtml(product.name)}" data-image="${escapeHtml(initialMedia.image)}" data-base-price="${product.price}" data-price="${product.price}">Add to bag</button></form>
       <div class="product-assurances"><p>Secure checkout in the native store.</p><p>Delivery details are shown before payment.</p></div>
     </div>
-  </section></main>`;
+  </section><script type="application/json" data-preview-variant-media>${variantMedia}</script><script>(()=>{const root=document.currentScript.closest("main");const form=root?.querySelector(".preview-product__form");const image=root?.querySelector("[data-preview-product-image]");const button=form?.querySelector("[data-add-to-cart]");let variants=[];try{variants=JSON.parse(root?.querySelector("[data-preview-variant-media]")?.textContent||"[]")}catch{}const update=()=>{const values=[...(form?.querySelectorAll("[data-product-option]")||[])].map((select)=>select.value);const variant=variants.find((candidate)=>candidate.options.every((value,index)=>value===values[index]));if(!variant||!image)return;image.src=variant.src;image.alt=variant.alt||"";if(button)button.dataset.image=variant.asset};form?.addEventListener("change",update);update()})();</script></main>`;
   return nestedDocument(brand, { rootPath, title: product.name, description: product.description, content, bodyClass: "product-preview" });
 }
 

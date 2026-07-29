@@ -63,7 +63,7 @@ function totalPrice() {
   return items.reduce((total, item) => total + item.price * item.quantity, 0);
 }
 
-function setCart(open) {
+function setCart(open, { restoreFocus = true } = {}) {
   const cart = getCart();
   const scrim = getScrim();
   if (!cart || !scrim) return;
@@ -73,10 +73,10 @@ function setCart(open) {
   if (open) {
     drawerReturnFocus = document.activeElement;
     cart.removeAttribute("inert");
-    requestAnimationFrame(() => cart.querySelector("[data-cart-close]")?.focus());
+    requestAnimationFrame(() => cart.querySelector("[data-cart-close]")?.focus({ preventScroll: true }));
   } else {
     cart.setAttribute("inert", "");
-    if (drawerReturnFocus instanceof HTMLElement) drawerReturnFocus.focus();
+    if (restoreFocus && drawerReturnFocus instanceof HTMLElement) drawerReturnFocus.focus({ preventScroll: true });
     drawerReturnFocus = null;
   }
 }
@@ -265,6 +265,11 @@ document.addEventListener("click", (event) => {
   }
   if (event.target.closest("[data-cart-close]") || event.target.closest("[data-scrim]")) {
     setCart(false);
+    return;
+  }
+  const continueShopping = event.target.closest("[data-cart-continue]");
+  if (continueShopping && getCart()?.contains(continueShopping)) {
+    setCart(false, { restoreFocus: false });
     return;
   }
   if (event.target.closest("#primary-nav a")) closeMenu();

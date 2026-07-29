@@ -78,7 +78,7 @@ The equivalent environment variables are `SFK_BRANDS_ROOT` and `SFK_OUTPUT_ROOT`
 
 ## Shopify catalogue media
 
-Local fixture artwork travels with the theme. Shopify product CSVs leave `Image Src`, `Image Position` and `Image Alt Text` empty because Shopify only accepts image metadata when the source is a public, importable URL. Until native product media is added, the theme renders the matching packaged asset as a fallback.
+Local fixture artwork travels with the theme. Shopify product CSVs leave product and variant image URLs empty because Shopify only accepts a public, importable URL. The theme prefers native variant media, then a packaged variant-specific asset, then native product media, and finally the packaged base asset. The build also emits a portable media manifest so the optional hydration step can map product and variant assets to store-specific HTTPS URLs without putting CDN details in the brand pack.
 
 ## Validation
 

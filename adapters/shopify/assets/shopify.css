@@ -10,6 +10,7 @@
 .main-product__content>.rte{max-width:36rem;margin-top:1.5rem;color:color-mix(in srgb,var(--ink) 78%,transparent);font-size:1.02rem}
 .main-product__form{display:grid;gap:1.15rem;max-width:38rem;margin-top:2rem}
 .product-options{display:grid;gap:1.35rem}
+.product-options[hidden],.product-property[hidden]{display:none!important}
 .product-option{min-width:0;margin:0;padding:0;border:0}
 .product-option legend,.main-product__form>label,.product-property label{display:block;margin-bottom:.55rem;font-size:.72rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
 .product-option__values{display:flex;flex-wrap:wrap;gap:.55rem}

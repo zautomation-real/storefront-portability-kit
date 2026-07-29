@@ -21,11 +21,11 @@
       {% for item in cart.items %}
         <article class="cart-drawer__item">
           <a href="{{ item.url }}" aria-label="{{ item.product.title | escape }}">
-            {% if item.image %}
-              {% assign drawer_image_alt = item.image.alt | default: item.product.title %}
-              {{ item.image | image_url: width: 240 | image_tag: widths: '120,180,240', loading: 'lazy', alt: drawer_image_alt }}
+            {% if item.variant.featured_image %}
+              {% assign drawer_image_alt = item.variant.featured_image.alt | default: item.product.title %}
+              {{ item.variant.featured_image | image_url: width: 240 | image_tag: widths: '120,180,240', loading: 'lazy', alt: drawer_image_alt }}
             {% else %}
-              {% render 'fixture-product-image', product: item.product, loading: 'lazy' %}
+              {% render 'fixture-product-image', product: item.product, variant: item.variant, loading: 'lazy' %}
             {% endif %}
           </a>
           <p>
@@ -46,7 +46,7 @@
   </div>
 
   {% if cart.item_count == 0 %}
-    <a class="button button--full" href="{{ routes.root_url }}#shop">{{ section.settings.continue_label | escape }}</a>
+    <a class="button button--full" href="{{ routes.root_url }}#shop" data-cart-continue>{{ section.settings.continue_label | escape }}</a>
   {% else %}
     <div class="cart-drawer__footer">
       <p>{{ section.settings.subtotal_label | escape }} <strong>{{ cart.total_price | money }}</strong></p>

@@ -93,6 +93,90 @@ function optionValue(value) {
     : { label: value.label, priceModifier: value.priceModifier || 0 };
 }
 
+function scriptSafeJson(value) {
+  return JSON.stringify(value).replaceAll("<", "\\u003c");
+}
+
+function shopifyVariantSku(brand, product, variant) {
+  return `${brand.id}-${product.id}-${variant.values.map((value) => skuPart(value.label)).join("-")}`;
+}
+
+export function assertUniqueShopifyVariantSkus(brand, catalog) {
+  const owners = new Map();
+  for (const product of catalog.products) {
+    for (const variant of productVariants(product)) {
+      const sku = shopifyVariantSku(brand, product, variant);
+      const label = `${product.id} / ${variant.values.map((value) => value.label).join(" / ")}`;
+      const earlier = owners.get(sku);
+      if (earlier) {
+        throw new Error(`Shopify variant SKU collision: ${sku} is produced by both ${earlier} and ${label}`);
+      }
+      owners.set(sku, label);
+    }
+  }
+}
+
+function selectionFor(product, values = []) {
+  return Object.fromEntries((product.options || []).map((option, index) => [option.name, values[index]?.label ?? values[index]]));
+}
+
+function variantMediaRules(product) {
+  return Array.isArray(product.variantMedia) ? product.variantMedia : [];
+}
+
+export function validateVariantMediaRules(product) {
+  if (product.variantMedia != null && !Array.isArray(product.variantMedia)) {
+    throw new Error(`${product.id || product.name || "product"} variantMedia must be an array`);
+  }
+  const valuesByOption = new Map((product.options || []).map((option) => [
+    option.name,
+    new Set((option.values || []).map((value) => optionValue(value).label))
+  ]));
+  const fingerprints = new Set();
+  for (const [index, rule] of variantMediaRules(product).entries()) {
+    if (!rule || typeof rule !== "object" || Array.isArray(rule)) {
+      throw new Error(`${product.id || product.name || "product"} variantMedia rule ${index + 1} must be an object`);
+    }
+    if (!rule.match || typeof rule.match !== "object" || Array.isArray(rule.match) || !Object.keys(rule.match).length) {
+      throw new Error(`${product.id || product.name || "product"} variantMedia rule ${index + 1} needs a match`);
+    }
+    const fingerprint = JSON.stringify(Object.entries(rule.match).sort(([left], [right]) => left.localeCompare(right)));
+    if (fingerprints.has(fingerprint)) {
+      throw new Error(`${product.id || product.name || "product"} has duplicate variantMedia rules`);
+    }
+    fingerprints.add(fingerprint);
+    for (const [name, value] of Object.entries(rule.match)) {
+      if (!valuesByOption.has(name)) throw new Error(`${product.id || product.name || "product"} variantMedia references missing option ${name}`);
+      if (!valuesByOption.get(name).has(value)) throw new Error(`${product.id || product.name || "product"} variantMedia references missing value ${name}=${value}`);
+    }
+    if (typeof rule.image !== "string" || !rule.image.trim()) {
+      throw new Error(`${product.id || product.name || "product"} variantMedia rule ${index + 1} needs an image`);
+    }
+    if (rule.alt != null && (typeof rule.alt !== "string" || !rule.alt.trim())) {
+      throw new Error(`${product.id || product.name || "product"} variantMedia rule ${index + 1} has an invalid alt`);
+    }
+  }
+}
+
+export function resolveVariantMedia(product, values = []) {
+  const selection = Array.isArray(values) ? selectionFor(product, values) : values;
+  const matches = variantMediaRules(product)
+    .map((rule, index) => ({ rule, index, specificity: Object.keys(rule.match || {}).length }))
+    .filter(({ rule }) => Object.entries(rule.match || {}).every(([name, value]) => selection?.[name] === value))
+    .sort((left, right) => right.specificity - left.specificity || left.index - right.index);
+
+  if (matches.length > 1 && matches[0].specificity === matches[1].specificity) {
+    const labels = Object.entries(selection || {}).map(([name, value]) => `${name}=${value}`).join(", ");
+    throw new Error(`${product.id || product.name || "product"} has ambiguous variantMedia rules for ${labels || "its default variant"}`);
+  }
+
+  const selected = matches[0]?.rule;
+  return {
+    image: selected?.image || product.image,
+    alt: selected?.alt || product.name
+  };
+}
+
 function assertValidShopifyImageColumns(header, rows) {
   const sourceIndex = header.indexOf("Image Src");
   const positionIndex = header.indexOf("Image Position");
@@ -123,16 +207,22 @@ export function combineShopifyProductCsv(documents) {
 }
 
 export function productVariants(product) {
+  validateVariantMediaRules(product);
   const options = (product.options || []).slice(0, 3);
-  if (!options.length) return [{ values: [{ label: "Default Title", priceModifier: 0 }], price: product.price }];
-  return options.reduce((variants, option) => variants.flatMap((variant) => option.values.map((rawValue) => {
+  if (!options.length) {
+    const values = [{ label: "Default Title", priceModifier: 0 }];
+    return [{ values, price: product.price, media: resolveVariantMedia(product, {}) }];
+  }
+  const variants = options.reduce((current, option) => current.flatMap((variant) => option.values.map((rawValue) => {
     const value = optionValue(rawValue);
     return { values: [...variant.values, value], price: variant.price + value.priceModifier };
   })), [{ values: [], price: product.price }]);
+  return variants.map((variant) => ({ ...variant, media: resolveVariantMedia(product, variant.values) }));
 }
 
 export function shopifyProductCsv(brand, catalog) {
-  const header = ["Handle", "Title", "Body (HTML)", "Vendor", "Product Category", "Type", "Tags", "Published", "Option1 Name", "Option1 Value", "Option2 Name", "Option2 Value", "Option3 Name", "Option3 Value", "Variant SKU", "Variant Price", "Variant Compare At Price", "Variant Requires Shipping", "Variant Taxable", "Image Src", "Image Position", "Image Alt Text", "Status"];
+  assertUniqueShopifyVariantSkus(brand, catalog);
+  const header = ["Handle", "Title", "Body (HTML)", "Vendor", "Product Category", "Type", "Tags", "Published", "Option1 Name", "Option1 Value", "Option2 Name", "Option2 Value", "Option3 Name", "Option3 Value", "Variant SKU", "Variant Price", "Variant Compare At Price", "Variant Requires Shipping", "Variant Taxable", "Image Src", "Image Position", "Image Alt Text", "Variant Image", "Status"];
   const rows = catalog.products.flatMap((product) => {
     const options = (product.options || []).slice(0, 3);
     return productVariants(product).map((variant, index) => {
@@ -151,11 +241,12 @@ export function shopifyProductCsv(brand, catalog) {
         index === 0 ? [product.category, product.badge].filter(Boolean).join(", ") : "",
         index === 0 ? "TRUE" : "",
         ...optionFields,
-        `${brand.id}-${product.id}-${variant.values.map((value) => skuPart(value.label)).join("-")}`,
+        shopifyVariantSku(brand, product, variant),
         (variant.price / 100).toFixed(2),
         product.compareAtPrice ? ((product.compareAtPrice + modifier) / 100).toFixed(2) : "",
         "TRUE",
         "TRUE",
+        "",
         "",
         "",
         "",
@@ -165,6 +256,24 @@ export function shopifyProductCsv(brand, catalog) {
   });
   assertValidShopifyImageColumns(header, rows);
   return [header, ...rows].map((row) => row.map(csvCell).join(",")).join("\n");
+}
+
+export function shopifyMediaManifest(brand, catalog) {
+  assertUniqueShopifyVariantSkus(brand, catalog);
+  const products = {};
+  const variants = {};
+  for (const product of catalog.products) {
+    products[product.id] = { image: product.image, alt: product.name };
+    for (const variant of productVariants(product)) {
+      const sku = shopifyVariantSku(brand, product, variant);
+      variants[sku] = {
+        handle: product.id,
+        image: variant.media.image,
+        alt: variant.media.alt
+      };
+    }
+  }
+  return JSON.stringify({ version: 1, products, variants }, null, 2);
 }
 
 export function wooProductCsv(brand, catalog) {
@@ -227,17 +336,53 @@ export function brandCss(brand) {
   return `:root{--ink:${brand.palette.ink};--paper:${brand.palette.paper};--muted:${brand.palette.muted};--accent:${brand.palette.accent};--accent-contrast:${brand.palette.accentContrast};--line:${brand.palette.line};--surface:${brand.palette.surface};--soft:${brand.palette.soft};--font-display:${brand.typography.display};--font-body:${brand.typography.body};}`;
 }
 
+function liquidVariantCondition(product, rule) {
+  return Object.entries(rule.match).map(([name, value]) => {
+    const optionIndex = (product.options || []).findIndex((option) => option.name === name);
+    return `variant.option${optionIndex + 1} == ${JSON.stringify(value)}`;
+  }).join(" and ");
+}
+
+function sortedVariantMediaRules(product) {
+  validateVariantMediaRules(product);
+  return variantMediaRules(product)
+    .map((rule, index) => ({ ...rule, index, specificity: Object.keys(rule.match).length }))
+    .sort((left, right) => right.specificity - left.specificity || left.index - right.index);
+}
+
 export function shopifyFixtureImageSnippet(catalog) {
   const cases = catalog.products.map((product) => {
-    const asset = `brand-${product.image.split("/").at(-1)}`;
-    return `  {% when '${product.id}' %}{% assign fixture_asset = '${asset}' %}`;
+    const baseAsset = `brand-${product.image.split("/").at(-1)}`;
+    const rules = sortedVariantMediaRules(product).map((rule, index) => {
+      const keyword = index === 0 ? "if" : "elsif";
+      const ruleAsset = `brand-${rule.image.split("/").at(-1)}`;
+      return `    {% ${keyword} ${liquidVariantCondition(product, rule)} %}\n      {% assign fixture_variant_asset = '${ruleAsset}' %}\n      {% assign fixture_variant_alt = ${JSON.stringify(rule.alt || product.name)} %}`;
+    }).join("\n");
+    const ruleBlock = rules ? `\n  {% if variant != blank %}\n${rules}\n    {% endif %}\n  {% endif %}` : "";
+    return `  {% when '${product.id}' %}\n  {% assign fixture_base_asset = '${baseAsset}' %}\n  {% assign fixture_base_alt = ${JSON.stringify(product.name)} %}${ruleBlock}`;
   }).join("\n");
   return `{% comment %}Build-time fallback media for an imported product that has no Shopify media yet.{% endcomment %}
-{% assign fixture_asset = blank %}
+{% assign fixture_base_asset = blank %}
+{% assign fixture_base_alt = product.title %}
+{% assign fixture_variant_asset = blank %}
+{% assign fixture_variant_alt = product.title %}
+{% assign fixture_loading = loading | default: 'lazy' %}
 {% case product.handle %}
 ${cases}
 {% endcase %}
-{% if fixture_asset != blank %}<img src="{{ fixture_asset | asset_url }}" alt="{{ product.title | escape }}" width="900" height="1100" loading="{{ loading | default: 'lazy' }}">{% else %}{{ 'product-1' | placeholder_svg_tag }}{% endif %}`;
+{% if fixture_variant_asset != blank %}<img src="{{ fixture_variant_asset | asset_url }}" alt="{{ fixture_variant_alt | escape }}" width="900" height="1100" loading="{{ fixture_loading }}">{% elsif product.featured_image %}{{ product.featured_image | image_url: width: 1400 | image_tag: widths: '500,800,1100,1400', loading: fixture_loading, alt: product.title }}{% elsif fixture_base_asset != blank %}<img src="{{ fixture_base_asset | asset_url }}" alt="{{ fixture_base_alt | escape }}" width="900" height="1100" loading="{{ fixture_loading }}">{% else %}{{ 'product-1' | placeholder_svg_tag }}{% endif %}`;
+}
+
+export function shopifyVariantMediaJsonSnippet(catalog) {
+  const cases = catalog.products.map((product) => {
+    const fallbackAsset = `brand-${product.image.split("/").at(-1)}`;
+    const rules = sortedVariantMediaRules(product).map((rule) => {
+      const asset = `brand-${rule.image.split("/").at(-1)}`;
+      return `{"match":${scriptSafeJson(rule.match)},"src":{{ '${asset}' | asset_url | json }},"alt":${scriptSafeJson(rule.alt || product.name)},"width":900,"height":1100}`;
+    }).join(",");
+    return `{% when '${product.id}' %}{"optionNames":${scriptSafeJson((product.options || []).map((option) => option.name))},"fallback":{"src":{{ '${fallbackAsset}' | asset_url | json }},"alt":${scriptSafeJson(product.name)},"width":900,"height":1100},"rules":[${rules}]}`;
+  }).join("\n");
+  return `{% case product.handle %}\n${cases}\n{% else %}{}\n{% endcase %}`;
 }
 
 function shopifyDestination(href) {

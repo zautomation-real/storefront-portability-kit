@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { presentationLayout } from "../scripts/lib.mjs";
 import { renderProductPreview } from "../scripts/render-preview.mjs";
-import { combineShopifyProductCsv, productVariants, shopifyFallbackFooterSnippet, shopifyFallbackNavigationSnippet, shopifyIndexTemplate, shopifyPasswordTemplate, shopifyProductCsv, wooProductCsv } from "../scripts/platform-output.mjs";
+import { combineShopifyProductCsv, productVariants, resolveVariantMedia, shopifyFallbackFooterSnippet, shopifyFallbackNavigationSnippet, shopifyFixtureImageSnippet, shopifyIndexTemplate, shopifyMediaManifest, shopifyPasswordTemplate, shopifyProductCsv, shopifyVariantMediaJsonSnippet, validateVariantMediaRules, wooProductCsv } from "../scripts/platform-output.mjs";
 
 const brand = {
   id: "test-store",
@@ -26,6 +26,10 @@ const product = {
   image: "assets/product.webp",
   category: "Test",
   description: "A product with native options.",
+  variantMedia: [
+    { match: { Finish: "Dark" }, image: "assets/product-dark.webp", alt: "Configured product in Dark" },
+    { match: { Finish: "Dark", Service: "Installed" }, image: "assets/product-dark-installed.webp" }
+  ],
   options: [
     { name: "Finish", values: ["Natural", { label: "Dark", priceModifier: 1500 }] },
     { name: "Service", values: ["Delivery", { label: "Installed", priceModifier: 3000 }] }
@@ -71,6 +75,34 @@ test("variant generation creates the full Cartesian product with additive prices
   const variants = productVariants(product);
   assert.equal(variants.length, 4);
   assert.deepEqual(variants.map((variant) => variant.price), [10000, 13000, 11500, 14500]);
+  assert.deepEqual(variants.map((variant) => variant.media.image), [
+    "assets/product.webp",
+    "assets/product.webp",
+    "assets/product-dark.webp",
+    "assets/product-dark-installed.webp"
+  ]);
+});
+
+test("variant media prefers the most specific rule and rejects ambiguous matches", () => {
+  assert.equal(resolveVariantMedia(product, { Finish: "Dark", Service: "Installed" }).image, "assets/product-dark-installed.webp");
+  assert.throws(() => productVariants({
+    ...product,
+    variantMedia: [
+      { match: { Finish: "Dark" }, image: "assets/dark.webp" },
+      { match: { Service: "Installed" }, image: "assets/installed.webp" }
+    ]
+  }), /ambiguous variantMedia rules/);
+  assert.throws(() => validateVariantMediaRules({
+    ...product,
+    variantMedia: [{ match: { Material: "Dark" }, image: "assets/dark.webp" }]
+  }), /missing option Material/);
+  assert.throws(() => validateVariantMediaRules({
+    ...product,
+    variantMedia: [
+      { match: { Finish: "Dark" }, image: "assets/dark.webp" },
+      { match: { Finish: "Dark" }, image: "assets/dark-again.webp" }
+    ]
+  }), /duplicate variantMedia rules/);
 });
 
 test("Shopify and WooCommerce CSVs keep every row aligned", () => {
@@ -109,6 +141,61 @@ test("Shopify composition includes portable section settings and blocks", () => 
   assert.equal(template.sections["01_comparison"].block_order.length, 1);
 });
 
+test("Shopify media manifest keeps portable assets aligned to stable variant SKUs", () => {
+  const manifest = JSON.parse(shopifyMediaManifest(brand, { products: [product] }));
+  assert.equal(manifest.version, 1);
+  assert.equal(manifest.products[product.id].image, product.image);
+  assert.equal(manifest.variants["test-store-configured-product-dark-installed"].image, "assets/product-dark-installed.webp");
+  const header = csvRows(shopifyProductCsv(brand, { products: [product] }))[0];
+  assert.ok(header.includes("Variant Image"));
+});
+
+test("Shopify outputs reject different option labels that collapse to the same SKU", () => {
+  const collision = {
+    ...product,
+    variantMedia: [],
+    options: [{ name: "Finish", values: ["A B", "A-B"] }]
+  };
+
+  assert.throws(
+    () => shopifyProductCsv(brand, { products: [collision] }),
+    /Shopify variant SKU collision: test-store-configured-product-a-b/
+  );
+  assert.throws(
+    () => shopifyMediaManifest(brand, { products: [collision] }),
+    /Shopify variant SKU collision/
+  );
+});
+
+test("generated Liquid fixtures carry initial and client-side variant media fallbacks", () => {
+  const imageSnippet = shopifyFixtureImageSnippet({ products: [product] });
+  const jsonSnippet = shopifyVariantMediaJsonSnippet({ products: [product] });
+  assert.match(imageSnippet, /variant\.option1 == "Dark"/);
+  assert.match(imageSnippet, /brand-product-dark-installed\.webp/);
+  assert.ok(imageSnippet.indexOf("fixture_variant_asset != blank") < imageSnippet.indexOf("elsif product.featured_image"));
+  assert.ok(imageSnippet.indexOf("elsif product.featured_image") < imageSnippet.indexOf("elsif fixture_base_asset != blank"));
+  assert.match(jsonSnippet, /"optionNames":\["Finish","Service"\]/);
+  assert.match(jsonSnippet, /asset_url \| json/);
+  assert.match(jsonSnippet, /"width":900,"height":1100/);
+});
+
+test("generated Shopify variant-media JSON cannot close its script element", () => {
+  const unsafeProduct = {
+    ...product,
+    name: "Product </script><script>unsafe()</script>",
+    options: [{ name: "Finish </script>", values: ["Dark </script>"] }],
+    variantMedia: [{
+      match: { "Finish </script>": "Dark </script>" },
+      image: "assets/product-dark.webp",
+      alt: "View </script><script>unsafe()</script>"
+    }]
+  };
+  const snippet = shopifyVariantMediaJsonSnippet({ products: [unsafeProduct] });
+
+  assert.doesNotMatch(snippet, /<\/script>/i);
+  assert.match(snippet, /\\u003c\/script>/);
+});
+
 test("Shopify password composition carries brand media without hard-coded fixture names", () => {
   const template = JSON.parse(shopifyPasswordTemplate(brand));
   assert.deepEqual(template.order, ["main"]);
@@ -120,9 +207,11 @@ test("Shopify password composition carries brand media without hard-coded fixtur
 test("static product preview exposes every product option and dynamic pricing hooks", () => {
   const html = renderProductPreview(brand, product);
   assert.match(html, /data-layout="standard"/);
-  assert.equal((html.match(/data-product-option/g) || []).length, 2);
+  assert.equal((html.match(/data-product-option data-option-name/g) || []).length, 2);
   assert.match(html, /data-price-modifier="1500"/);
   assert.match(html, /data-base-compare="12000"/);
+  assert.match(html, /data-preview-variant-media/);
+  assert.match(html, /product-dark-installed\.webp/);
 });
 
 test("generated footers preserve real destinations across nested and Shopify pages", () => {
@@ -155,11 +244,23 @@ test("mobile navigation control stays hidden on desktop", async () => {
   assert.doesNotMatch(stylesheet, /\.cart-button,\.menu-button\{display:inline-flex/);
 });
 
+test("shared storefront composition fills product media and preserves hidden controls", async () => {
+  const stylesheet = await readFile(new URL("../shared/storefront.css", import.meta.url), "utf8");
+
+  assert.match(stylesheet, /\[hidden\]\{display:none!important\}/);
+  assert.match(stylesheet, /\.product-card__media>\.media,\.product-card__media>\.media img\{width:100%;height:100%\}/);
+  assert.match(stylesheet, /\.newsletter form>label\{grid-column:1;/);
+  assert.match(stylesheet, /\.newsletter form>\.button\{grid-column:2;/);
+});
+
 test("Shopify product pages resolve native variants and preserve line-item properties", async () => {
   const template = await readFile(new URL("../adapters/shopify/sections/main-product.liquid", import.meta.url), "utf8");
 
   assert.match(template, /name="id"[\s\S]*data-variant-id/);
   assert.match(template, /data-product-variants/);
+  assert.match(template, /data-fixture-variant-media/);
+  assert.match(template, /selected_variant\.featured_image/);
+  assert.match(template, /updateMedia\(variant\)/);
   assert.match(template, /data-product-option/);
   assert.match(template, /name="quantity"/);
   assert.match(template, /name="properties\[Engraving\]"/);
@@ -167,14 +268,20 @@ test("Shopify product pages resolve native variants and preserve line-item prope
 });
 
 test("Shopify cart and newsletter retain native platform submissions", async () => {
-  const [drawer, newsletter, runtime] = await Promise.all([
+  const [drawer, mainCart, newsletter, runtime] = await Promise.all([
     readFile(new URL("../adapters/shopify/sections/cart-drawer.liquid", import.meta.url), "utf8"),
+    readFile(new URL("../adapters/shopify/sections/main-cart.liquid", import.meta.url), "utf8"),
     readFile(new URL("../adapters/shopify/sections/newsletter.liquid", import.meta.url), "utf8"),
     readFile(new URL("../shared/storefront.js", import.meta.url), "utf8")
   ]);
 
   assert.match(drawer, /name="checkout"/);
   assert.match(drawer, /data-cart-drawer-content/);
+  assert.match(drawer, /item\.variant\.featured_image/);
+  assert.match(drawer, /variant: item\.variant/);
+  assert.match(mainCart, /item\.variant\.featured_image/);
+  assert.match(mainCart, /variant: item\.variant/);
+  assert.match(drawer, /data-cart-continue/);
   assert.match(newsletter, /form 'customer'/);
   assert.match(newsletter, /contact\[accepts_marketing\]/);
   assert.match(newsletter, /shop\.privacy_policy/);
@@ -184,6 +291,8 @@ test("Shopify cart and newsletter retain native platform submissions", async () 
   assert.match(runtime, /body\.dataset\.platform === "shopify"/);
   assert.match(runtime, /if \(!isNativeStorefront\)[\s\S]*?\[data-newsletter\]/);
   assert.match(runtime, /if \(isNativeStorefront\) refreshCartCount/);
+  assert.equal((runtime.match(/focus\(\{ preventScroll: true \}\)/g) || []).length, 2);
+  assert.match(runtime, /setCart\(false, \{ restoreFocus: false \}\)/);
 });
 
 test("Shopify production shell includes password, 404 and SEO primitives", async () => {

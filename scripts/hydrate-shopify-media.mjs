@@ -3,7 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "./lib.mjs";
 
-const REQUIRED_COLUMNS = ["Handle", "Image Src", "Image Position", "Image Alt Text"];
+const REQUIRED_COLUMNS = ["Handle", "Variant SKU", "Image Src", "Image Position", "Image Alt Text", "Variant Image"];
 
 function csvCell(value) {
   const text = value == null ? "" : String(value);
@@ -137,10 +137,50 @@ function validateMediaEntry(handle, value) {
     throw new Error(`Media-map entry "${handle}" requires a positive integer position`);
   }
 
+  const variantAssets = new Map();
+  if (value.variantAssets !== undefined) {
+    if (!value.variantAssets || typeof value.variantAssets !== "object" || Array.isArray(value.variantAssets)) {
+      throw new Error(`Media-map entry "${handle}" variantAssets must be an object`);
+    }
+    for (const [rawAsset, assetValue] of Object.entries(value.variantAssets)) {
+      const asset = rawAsset.trim();
+      if (!asset) throw new Error(`Media-map entry "${handle}" contains an empty variant asset`);
+      if (variantAssets.has(asset)) throw new Error(`Media-map entry "${handle}" repeats variant asset ${asset}`);
+      variantAssets.set(asset, validateMediaEntry(`${handle}/${asset}`, assetValue));
+    }
+  }
+
   return {
     url: url.toString(),
     alt: value.alt?.trim() || "",
-    position
+    position,
+    variantAssets
+  };
+}
+
+export function parseShopifyMediaManifest(document) {
+  let parsed;
+  try {
+    parsed = JSON.parse(String(document).replace(/^\uFEFF/, ""));
+  } catch (error) {
+    throw new Error(`Media manifest is not valid JSON: ${error.message}`);
+  }
+  if (!parsed || parsed.version !== 1 || !parsed.products || typeof parsed.products !== "object" || Array.isArray(parsed.products) || !parsed.variants || typeof parsed.variants !== "object" || Array.isArray(parsed.variants)) {
+    throw new Error("Media manifest must contain version 1 products and variants");
+  }
+  for (const [handle, product] of Object.entries(parsed.products)) {
+    if (!handle.trim() || !product || typeof product !== "object" || Array.isArray(product) || typeof product.image !== "string" || !product.image.trim()) {
+      throw new Error(`Media manifest contains an invalid product: ${handle || "(empty handle)"}`);
+    }
+  }
+  for (const [sku, variant] of Object.entries(parsed.variants)) {
+    if (!sku.trim() || !variant || typeof variant !== "object" || Array.isArray(variant) || typeof variant.handle !== "string" || !variant.handle.trim() || typeof variant.image !== "string" || !variant.image.trim()) {
+      throw new Error(`Media manifest contains an invalid variant: ${sku || "(empty SKU)"}`);
+    }
+  }
+  return {
+    products: new Map(Object.entries(parsed.products)),
+    variants: new Map(Object.entries(parsed.variants))
   };
 }
 
@@ -180,7 +220,7 @@ function requiredColumnIndexes(header) {
   return indexes;
 }
 
-export function hydrateShopifyMediaCsv(csvDocument, mapDocument) {
+export function hydrateShopifyMediaCsv(csvDocument, mapDocument, manifestDocument) {
   const rows = parseCsvDocument(csvDocument);
   const header = rows[0];
   const indexes = requiredColumnIndexes(header);
@@ -212,6 +252,53 @@ export function hydrateShopifyMediaCsv(csvDocument, mapDocument) {
     }
   }
 
+  const hasVariantAssets = [...media.values()].some((entry) => entry.variantAssets.size);
+  if (hasVariantAssets && !manifestDocument) {
+    throw new Error("A Shopify media manifest is required when the media map contains variantAssets");
+  }
+
+  if (manifestDocument) {
+    const manifest = parseShopifyMediaManifest(manifestDocument);
+    const rowBySku = new Map();
+    const rowsByMappedHandle = new Map([...media.keys()].map((handle) => [handle, []]));
+    for (const [index, row] of productRows.entries()) {
+      const handle = row[indexes.Handle].trim();
+      if (!media.has(handle)) continue;
+      const sku = row[indexes["Variant SKU"]].trim();
+      if (!sku) throw new Error(`Shopify CSV row ${index + 2} has an empty Variant SKU`);
+      if (rowBySku.has(sku)) throw new Error(`Shopify CSV repeats Variant SKU: ${sku}`);
+      rowBySku.set(sku, row);
+      rowsByMappedHandle.get(handle).push({ row, sku });
+    }
+
+    for (const [handle, productMedia] of media) {
+      const product = manifest.products.get(handle);
+      if (!product) throw new Error(`Media manifest is missing product ${handle}`);
+      const rowsForHandle = rowsByMappedHandle.get(handle);
+      const manifestSkus = new Set();
+
+      for (const [sku, variant] of manifest.variants) {
+        if (variant.handle === handle) manifestSkus.add(sku);
+      }
+
+      for (const { row, sku } of rowsForHandle) {
+        const variant = manifest.variants.get(sku);
+        if (!variant) throw new Error(`Media manifest is missing Variant SKU ${sku} for ${handle}`);
+        if (variant.handle !== handle) throw new Error(`Media manifest handle mismatch for Variant SKU ${sku}`);
+        const mapped = variant.image === product.image
+          ? productMedia
+          : productMedia.variantAssets.get(variant.image);
+        if (!mapped) throw new Error(`Media map is missing variant asset ${handle}/${variant.image}`);
+        row[indexes["Variant Image"]] = mapped.url;
+        manifestSkus.delete(sku);
+      }
+
+      if (manifestSkus.size) {
+        throw new Error(`Media manifest contains unknown Variant SKU for ${handle}: ${[...manifestSkus].join(", ")}`);
+      }
+    }
+  }
+
   return serializeCsvDocument([header, ...productRows]);
 }
 
@@ -220,7 +307,7 @@ function usage() {
     "Hydrate a generated Shopify product CSV with store-specific media URLs.",
     "",
     "Usage:",
-    "  npm run shopify:hydrate-media -- --input <products.csv> --map <media.json> --output <products-with-media.csv>",
+    "  npm run shopify:hydrate-media -- --input <products.csv> --map <media.json> [--manifest <media-manifest.json>] --output <products-with-media.csv>",
     "",
     "The input and output paths must be different. The input CSV is never modified."
   ].join("\n");
@@ -244,11 +331,15 @@ export async function runCli(argv = process.argv.slice(2)) {
   const output = path.resolve(process.cwd(), args.output);
   if (input === output) throw new Error("--output must be different from --input; the canonical CSV is not modified");
 
-  const [csvDocument, mapDocument] = await Promise.all([
+  const manifest = typeof args.manifest === "string" && args.manifest.trim()
+    ? path.resolve(process.cwd(), args.manifest)
+    : undefined;
+  const [csvDocument, mapDocument, manifestDocument] = await Promise.all([
     readFile(input, "utf8"),
-    readFile(map, "utf8")
+    readFile(map, "utf8"),
+    manifest ? readFile(manifest, "utf8") : undefined
   ]);
-  const hydrated = hydrateShopifyMediaCsv(csvDocument, mapDocument);
+  const hydrated = hydrateShopifyMediaCsv(csvDocument, mapDocument, manifestDocument);
   await mkdir(path.dirname(output), { recursive: true });
   await writeFile(output, hydrated, "utf8");
   console.log(`Wrote Shopify media CSV: ${output}`);

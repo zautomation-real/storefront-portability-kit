@@ -12,7 +12,7 @@ Each brand pack starts with the decision a customer is trying to make. That dete
 
 ## 2. Keep portable facts portable
 
-Brand language, navigation, product fixtures, tokens, a generic presentation preset and section order live in JSON. Options may carry price modifiers in minor currency units; the generator expands them into the same Cartesian variant set on both platforms. Shared CSS and small browser behaviours use a stable class and data-attribute contract. Presentation presets describe composition (`standard`, `editorial` or `technical`) without coupling the public method to a private brand identity.
+Brand language, navigation, product fixtures, tokens, a generic presentation preset and section order live in JSON. Options may carry price modifiers in minor currency units; the generator expands them into the same Cartesian variant set on both platforms. Optional `variantMedia` rules associate visible option values or combinations with portable local artwork, with the most specific matching rule taking precedence. Shared CSS and small browser behaviours use a stable class and data-attribute contract. Presentation presets describe composition (`standard`, `editorial` or `technical`) without coupling the public method to a private brand identity.
 
 ## 3. Keep commerce native
 
@@ -31,7 +31,7 @@ The public build creates a preview, a native Shopify theme and its import file. 
 7. navigate with keyboard and visible focus;
 8. load without layout shifts from missing media dimensions.
 
-Automated checks reject broken media references, duplicate product or section IDs, missing adapter implementations, malformed Shopify schemas, unsupported Shopify asset-to-image pipelines, invalid option combinations, Shopify image metadata without a public image source and unresolved build tokens. Local product artwork is packaged with the theme and rendered by Shopify fallback markup, so its CSV image fields stay empty rather than pretending a local asset path is an importable URL. These checks complement the runtime journeys; they do not replace them.
+Automated checks reject broken media references, duplicate product or section IDs, colliding generated Shopify variant SKUs, missing adapter implementations, malformed Shopify schemas, unsupported Shopify asset-to-image pipelines, invalid option combinations, ambiguous variant-media rules, Shopify image metadata without a public image source and unresolved build tokens. Local product artwork is packaged with the theme and rendered by Shopify fallback markup, so its canonical CSV image fields stay empty rather than pretending a local asset path is an importable URL. A generated media manifest lets the separate hydration step assign store-specific HTTPS URLs to both products and variants. These checks complement the runtime journeys; they do not replace them.
 
 ## 5. Add another brand
 

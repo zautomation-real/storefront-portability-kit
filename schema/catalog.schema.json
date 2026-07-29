@@ -20,6 +20,24 @@
           "category": { "type": "string" },
           "description": { "type": "string" },
           "badge": { "type": "string" },
+          "variantMedia": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["match", "image"],
+              "properties": {
+                "match": {
+                  "type": "object",
+                  "minProperties": 1,
+                  "propertyNames": { "type": "string", "minLength": 1 },
+                  "additionalProperties": { "type": "string", "minLength": 1 }
+                },
+                "image": { "type": "string", "minLength": 1 },
+                "alt": { "type": "string", "minLength": 1 }
+              },
+              "additionalProperties": false
+            }
+          },
           "options": {
             "type": "array",
             "maxItems": 3,
