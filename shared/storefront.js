@@ -18,6 +18,8 @@ const productZoomStates = new WeakMap();
 const relatedCarousels = new Set();
 const relatedCarouselStates = new WeakMap();
 const cardMediaSelectors = new WeakSet();
+const cardMediaPreloads = new Map();
+let cardMediaPreloadObserver = null;
 
 const getMenuButton = () => document.querySelector("[data-menu-toggle]");
 const getNav = () => document.querySelector("#primary-nav");
@@ -234,6 +236,60 @@ function scrollRelatedCarousel(track, direction) {
   track.scrollBy({ left: direction * Math.max(280, track.clientWidth * .82), behavior: prefersReducedMotion.matches ? "auto" : "smooth" });
 }
 
+function preloadCardMedia(source, priority = "low") {
+  if (!source) return null;
+  if (cardMediaPreloads.has(source)) {
+    const existing = cardMediaPreloads.get(source);
+    if (priority === "high" && "fetchPriority" in existing.image) existing.image.fetchPriority = "high";
+    return existing;
+  }
+  const preload = new Image();
+  if ("fetchPriority" in preload) preload.fetchPriority = priority;
+  preload.src = source;
+  const ready = typeof preload.decode === "function"
+    ? preload.decode().catch(() => {})
+    : new Promise((resolve) => {
+        if (preload.complete) resolve();
+        else {
+          preload.addEventListener("load", resolve, { once: true });
+          preload.addEventListener("error", resolve, { once: true });
+        }
+      });
+  const entry = { image: preload, ready };
+  cardMediaPreloads.set(source, entry);
+  return entry;
+}
+
+function warmCardMediaSelector(root, priority = "low") {
+  root.querySelectorAll("[data-card-media-choice]").forEach((choice) => {
+    if (choice.dataset.cardMediaDefault !== "true") {
+      preloadCardMedia(choice.dataset.cardMediaImage, priority);
+    }
+  });
+}
+
+function scheduleCardMediaPreload(root) {
+  const warmNow = () => warmCardMediaSelector(root, "high");
+  root.addEventListener("pointerenter", warmNow, { once: true, passive: true });
+  root.addEventListener("focusin", warmNow, { once: true });
+  root.addEventListener("touchstart", warmNow, { once: true, passive: true });
+
+  if (!("IntersectionObserver" in window)) {
+    warmCardMediaSelector(root);
+    return;
+  }
+  if (!cardMediaPreloadObserver) {
+    cardMediaPreloadObserver = new IntersectionObserver((entries, observer) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        warmCardMediaSelector(entry.target);
+        observer.unobserve(entry.target);
+      });
+    }, { rootMargin: "320px" });
+  }
+  cardMediaPreloadObserver.observe(root);
+}
+
 function initCardMediaSelector(root) {
   if (cardMediaSelectors.has(root)) return;
   const card = root.closest(".product-card");
@@ -248,6 +304,8 @@ function initCardMediaSelector(root) {
     sizes: image.getAttribute("sizes"),
     alt: image.getAttribute("alt") || ""
   };
+
+  if (!root.closest("[data-related-carousel]")) scheduleCardMediaPreload(root);
 
   const restoreAttribute = (name, value) => {
     if (value == null) image.removeAttribute(name);
@@ -265,6 +323,7 @@ function initCardMediaSelector(root) {
       } else {
         const source = choice.dataset.cardMediaImage;
         if (!source) return;
+        preloadCardMedia(source, "high");
         image.removeAttribute("srcset");
         image.removeAttribute("sizes");
         image.src = source;
@@ -278,6 +337,7 @@ function initCardMediaSelector(root) {
 function initRelatedCarousel(track) {
   if (relatedCarousels.has(track)) return;
   relatedCarousels.add(track);
+  if (track.querySelector("[data-card-media-selector]")) scheduleCardMediaPreload(track);
   const state = { pointerId: null, startX: 0, startScroll: 0, dragged: false, suppressClick: false, frame: 0 };
   relatedCarouselStates.set(track, state);
   const controls = track.closest(".related-products")?.querySelector("[data-related-carousel-controls]");

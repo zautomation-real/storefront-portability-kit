@@ -542,8 +542,10 @@ test("shared card media runtime swaps media, restores responsive attributes and 
 
   const initCardMediaSelector = Function(
     "cardMediaSelectors",
+    "scheduleCardMediaPreload",
+    "preloadCardMedia",
     `"use strict"; ${functionSource}; return initCardMediaSelector;`
-  )(new WeakSet());
+  )(new WeakSet(), () => {}, () => {});
   const attributes = new Map([
     ["src", "original.webp"],
     ["srcset", "original-450.webp 450w, original-900.webp 900w"],
@@ -581,7 +583,7 @@ test("shared card media runtime swaps media, restores responsive attributes and 
   const choices = [originalChoice, alternateChoice];
   const card = { querySelector: () => image };
   const root = {
-    closest: () => card,
+    closest(selector) { return selector === ".product-card" ? card : null; },
     querySelectorAll: () => choices
   };
 
@@ -604,6 +606,122 @@ test("shared card media runtime swaps media, restores responsive attributes and 
   assert.equal(image.getAttribute("sizes"), "(max-width: 700px) 100vw, 50vw");
   assert.equal(originalChoice["aria-pressed"], "true");
   assert.equal(alternateChoice["aria-pressed"], "false");
+});
+
+test("the first alternate-card click reuses a decoded preload without another request", async () => {
+  const runtime = await readFile(new URL("../shared/storefront.js", import.meta.url), "utf8");
+  const helperStart = runtime.indexOf("function preloadCardMedia(source");
+  const runtimeEnd = runtime.indexOf("\nfunction initRelatedCarousel", helperStart);
+  assert.ok(helperStart >= 0 && runtimeEnd > helperStart);
+
+  const images = [];
+  class MockImage {
+    constructor() {
+      this.fetchPriority = "auto";
+      images.push(this);
+    }
+    decode() {
+      this.decodeCount = (this.decodeCount || 0) + 1;
+      return Promise.resolve();
+    }
+  }
+
+  let observerCallback;
+  let observerOptions;
+  let observedRoot;
+  let unobservedRoot;
+  class MockIntersectionObserver {
+    constructor(callback, options) {
+      observerCallback = callback;
+      observerOptions = options;
+    }
+    observe(root) { observedRoot = root; }
+    unobserve(root) { unobservedRoot = root; }
+  }
+
+  const cardMediaPreloads = new Map();
+  const helpers = Function(
+    "cardMediaPreloads",
+    "cardMediaSelectors",
+    "window",
+    "Image",
+    "IntersectionObserver",
+    `"use strict"; let cardMediaPreloadObserver = null; ${runtime.slice(helperStart, runtimeEnd)}; return { initCardMediaSelector, preloadCardMedia };`
+  )(
+    cardMediaPreloads,
+    new WeakSet(),
+    { IntersectionObserver: MockIntersectionObserver },
+    MockImage,
+    MockIntersectionObserver
+  );
+
+  const listeners = new Map();
+  const choice = (dataset) => {
+    const choiceListeners = new Map();
+    return {
+      dataset,
+      addEventListener(type, listener) { choiceListeners.set(type, listener); },
+      setAttribute(name, value) { this[name] = String(value); },
+      click() { choiceListeners.get("click")?.(); }
+    };
+  };
+  const primaryChoice = choice({ cardMediaDefault: "true", cardMediaImage: "primary.webp" });
+  const alternateChoice = choice({
+    cardMediaDefault: "false",
+    cardMediaImage: "alternate.webp",
+    cardMediaAlt: "Alternate finish"
+  });
+  const choices = [primaryChoice, alternateChoice];
+  const attributes = new Map([
+    ["src", "primary.webp"],
+    ["srcset", "primary-450.webp 450w, primary-900.webp 900w"],
+    ["sizes", "100vw"],
+    ["alt", "Primary finish"]
+  ]);
+  const cardImage = {
+    getAttribute(name) { return attributes.has(name) ? attributes.get(name) : null; },
+    setAttribute(name, value) { attributes.set(name, String(value)); },
+    removeAttribute(name) { attributes.delete(name); },
+    get src() { return this.getAttribute("src"); },
+    set src(value) { this.setAttribute("src", value); },
+    get alt() { return this.getAttribute("alt"); },
+    set alt(value) { this.setAttribute("alt", value); }
+  };
+  const card = { querySelector() { return cardImage; } };
+  const root = {
+    addEventListener(type, listener) { listeners.set(type, listener); },
+    closest(selector) {
+      if (selector === ".product-card") return card;
+      if (selector === "[data-related-carousel]") return null;
+      return null;
+    },
+    querySelectorAll() { return choices; }
+  };
+
+  helpers.initCardMediaSelector(root);
+  assert.equal(observedRoot, root);
+  assert.deepEqual(observerOptions, { rootMargin: "320px" });
+  assert.equal(images.length, 0);
+
+  observerCallback([{ isIntersecting: true, target: root }], { unobserve(rootToRemove) { unobservedRoot = rootToRemove; } });
+  await cardMediaPreloads.get("alternate.webp").ready;
+  assert.equal(unobservedRoot, root);
+  assert.equal(images.length, 1);
+  assert.equal(images[0].src, "alternate.webp");
+  assert.equal(images[0].fetchPriority, "low");
+  assert.equal(images[0].decodeCount, 1);
+  assert.equal(cardMediaPreloads.has("primary.webp"), false);
+
+  alternateChoice.click();
+  assert.equal(cardImage.src, "alternate.webp");
+  assert.equal(cardImage.alt, "Alternate finish");
+  assert.equal(images.length, 1);
+  assert.equal(images[0].decodeCount, 1);
+
+  listeners.get("pointerenter")();
+  assert.equal(images.length, 1);
+  assert.equal(images[0].fetchPriority, "high");
+  assert.equal(helpers.preloadCardMedia("alternate.webp", "high").image, images[0]);
 });
 
 test("Shopify builds include the generated card media selector snippet", async () => {
@@ -757,6 +875,8 @@ test("related products become a draggable single-row rail at compact widths", as
 
   assert.match(runtime, /function initRelatedCarousel/);
   assert.match(runtime, /function updateRelatedCarousel/);
+  assert.match(runtime, /if \(!root\.closest\("\[data-related-carousel\]"\)\) scheduleCardMediaPreload\(root\)/);
+  assert.match(runtime, /track\.querySelector\("\[data-card-media-selector\]"\)\) scheduleCardMediaPreload\(track\)/);
   assert.match(runtime, /setPointerCapture/);
   const relatedRuntime = runtime.slice(runtime.indexOf("function initRelatedCarousel"), runtime.indexOf("function escapeMarkup"));
   assert.ok(
