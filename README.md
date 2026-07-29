@@ -11,6 +11,7 @@ The repository includes one deliberately neutral fixture, `Field Supply`, so the
 - brand language, navigation, catalogue data and design tokens;
 - a section vocabulary for composing the storefront;
 - product options and price modifiers;
+- explicit card-level colour and finish previews where the product form remains unchanged;
 - responsive presentation and progressive browser behaviour;
 - validation rules and repeatable build commands.
 

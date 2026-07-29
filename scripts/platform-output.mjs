@@ -156,6 +156,37 @@ export function validateVariantMediaRules(product) {
       throw new Error(`${product.id || product.name || "product"} variantMedia rule ${index + 1} has an invalid alt`);
     }
   }
+  if (product.cardMediaSelector != null) {
+    const selector = product.cardMediaSelector;
+    if (!selector || typeof selector !== "object" || Array.isArray(selector)) {
+      throw new Error(`${product.id || product.name || "product"} cardMediaSelector must be an object`);
+    }
+    const cardOption = (product.options || []).find((option) => option.name === selector.option);
+    if (!cardOption) {
+      throw new Error(`${product.id || product.name || "product"} cardMediaSelector references missing option ${selector.option}`);
+    }
+    if (!Array.isArray(selector.choices) || selector.choices.length < 2) {
+      throw new Error(`${product.id || product.name || "product"} cardMediaSelector needs at least two choices`);
+    }
+    const allowedValues = new Set(cardOption.values.map((value) => optionValue(value).label));
+    const selectedValues = new Set();
+    for (const choice of selector.choices) {
+      if (!choice || typeof choice !== "object" || !allowedValues.has(choice.value)) {
+        throw new Error(`${product.id || product.name || "product"} cardMediaSelector references missing value ${selector.option}=${choice?.value}`);
+      }
+      if (selectedValues.has(choice.value)) {
+        throw new Error(`${product.id || product.name || "product"} cardMediaSelector has duplicate value ${choice.value}`);
+      }
+      if (typeof choice.swatch !== "string" || !/^#[0-9a-f]{6}$/i.test(choice.swatch)) {
+        throw new Error(`${product.id || product.name || "product"} cardMediaSelector choice ${choice.value} needs a six-digit hex swatch`);
+      }
+      selectedValues.add(choice.value);
+    }
+    const cards = cardMediaItems(product, cardOption, selector.choices);
+    if (new Set(cards.map((item) => item.image)).size !== cards.length) {
+      throw new Error(`${product.id || product.name || "product"} cardMediaSelector must resolve every choice to different media`);
+    }
+  }
 }
 
 export function resolveVariantMedia(product, values = []) {
@@ -175,6 +206,25 @@ export function resolveVariantMedia(product, values = []) {
     image: selected?.image || product.image,
     alt: selected?.alt || product.name
   };
+}
+
+function cardMediaItems(product, option, choices) {
+  const options = product.options || [];
+  const optionIndex = options.indexOf(option);
+  const defaults = options.map((candidate) => optionValue(candidate.values[0]).label);
+  return choices.map((choice) => {
+    const value = choice.value;
+    const selectedValues = defaults.map((defaultValue, index) => index === optionIndex ? value : defaultValue);
+    const selection = Object.fromEntries(options.map((candidate, index) => [candidate.name, selectedValues[index]]));
+    return { optionName: option.name, optionIndex, selectedValues, label: value, swatch: choice.swatch, ...resolveVariantMedia(product, selection) };
+  });
+}
+
+export function cardMediaChoices(product) {
+  if (product.cardMediaSelector == null) return [];
+  validateVariantMediaRules(product);
+  const option = (product.options || []).find((candidate) => candidate.name === product.cardMediaSelector.option);
+  return cardMediaItems(product, option, product.cardMediaSelector.choices);
 }
 
 function assertValidShopifyImageColumns(header, rows) {
@@ -383,6 +433,22 @@ export function shopifyVariantMediaJsonSnippet(catalog) {
     return `{% when '${product.id}' %}{"optionNames":${scriptSafeJson((product.options || []).map((option) => option.name))},"fallback":{"src":{{ '${fallbackAsset}' | asset_url | json }},"alt":${scriptSafeJson(product.name)},"width":900,"height":1100},"rules":[${rules}]}`;
   }).join("\n");
   return `{% case product.handle %}\n${cases}\n{% else %}{}\n{% endcase %}`;
+}
+
+export function shopifyCardMediaSelectorSnippet(catalog) {
+  const cases = catalog.products
+    .filter((product) => product.cardMediaSelector != null)
+    .map((product) => {
+      const controls = cardMediaChoices(product).map((item, index) => {
+        const asset = `brand-${item.image.split("/").at(-1)}`;
+        const condition = item.selectedValues
+          .map((value, optionIndex) => `candidate_variant.option${optionIndex + 1} == ${JSON.stringify(value)}`)
+          .join(" and ");
+        return `{% assign card_media_variant = blank %}{% for candidate_variant in product.variants %}{% if ${condition} %}{% assign card_media_variant = candidate_variant %}{% break %}{% endif %}{% endfor %}<button class="product-card__media-choice" type="button" data-card-media-choice data-card-media-image="{% if card_media_variant.featured_image %}{{ card_media_variant.featured_image | image_url: width: 900 | escape }}{% else %}{{ '${asset}' | asset_url | escape }}{% endif %}" data-card-media-alt="{% if card_media_variant.featured_image.alt != blank %}{{ card_media_variant.featured_image.alt | escape }}{% else %}${escapeHtml(item.alt)}{% endif %}" data-card-media-default="${index === 0}" aria-label="Preview ${escapeHtml(product.name)} in ${escapeHtml(item.label)}" aria-pressed="${index === 0}" title="${escapeHtml(item.label)}" style="--card-swatch:${escapeHtml(item.swatch)}"></button>`;
+      }).join("");
+      return `{% when '${product.id}' %}<div class="product-card__media-selector" data-card-media-selector role="group" aria-label="Preview ${escapeHtml(product.cardMediaSelector.option)}">${controls}</div>`;
+    }).join("\n");
+  return `{% case product.handle %}\n${cases}\n{% endcase %}`;
 }
 
 function shopifyDestination(href) {

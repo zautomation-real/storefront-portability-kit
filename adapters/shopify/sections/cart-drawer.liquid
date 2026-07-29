@@ -35,7 +35,7 @@
               {% assign property_first_character = property.first | slice: 0 %}
               {% unless property.last == blank or property_first_character == '_' %}<br>{{ property.first | escape }}: {{ property.last | escape }}{% endunless %}
             {% endfor %}
-            <br>{{ item.quantity }} × {{ item.final_price | money }}
+            <br>{{ item.quantity }} × {{ item.final_price | money_without_trailing_zeros }}
           </p>
           <div class="cart-drawer__line-actions">
             <div class="quantity-control" data-cart-quantity data-line-key="{{ item.key | escape }}" data-product-title="{{ item.product.title | escape }}">
@@ -59,7 +59,7 @@
     <a class="button button--full" href="{{ routes.root_url }}#shop" data-cart-continue>{{ section.settings.continue_label | escape }}</a>
   {% else %}
     <div class="cart-drawer__footer">
-      <p>{{ section.settings.subtotal_label | escape }} <strong>{{ cart.total_price | money }}</strong></p>
+      <p>{{ section.settings.subtotal_label | escape }} <strong>{{ cart.total_price | money_without_trailing_zeros }}</strong></p>
       <div class="actions">
         <a class="button button--quiet" href="{{ routes.cart_url }}">{{ section.settings.review_label | escape }}</a>
         <form action="{{ routes.cart_url }}" method="post">

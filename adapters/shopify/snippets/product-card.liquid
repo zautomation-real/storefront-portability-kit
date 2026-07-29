@@ -12,29 +12,31 @@
 %}
 
 <article class="product-card">
-  <a class="product-card__media" href="{{ product.url }}" aria-label="{{ product.title | escape }}">
-    <div class="media">
-      {% if product.featured_image %}
-        {{ product.featured_image | image_url: width: 900 | image_tag: widths: '360,540,720,900', loading: 'lazy', alt: product.title }}
-      {% else %}
-        {% render 'fixture-product-image', product: product, variant: card_variant, loading: 'lazy' %}
-      {% endif %}
-    </div>
-    {% if product_badge != blank %}<span class="product-card__badge">{{ product_badge | escape }}</span>{% endif %}
-  </a>
+  <div class="product-card__visual">
+    <a class="product-card__media" href="{{ product.url }}" aria-label="{{ product.title | escape }}">
+      <div class="media">
+        {% if product.featured_image %}
+          {{ product.featured_image | image_url: width: 900 | image_tag: widths: '360,540,720,900', loading: 'lazy', alt: product.title }}
+        {% else %}
+          {% render 'fixture-product-image', product: product, variant: card_variant, loading: 'lazy' %}
+        {% endif %}
+      </div>
+      {% if product_badge != blank %}<span class="product-card__badge">{{ product_badge | escape }}</span>{% endif %}
+    </a>
+    {% render 'card-media-selector', product: product %}
+  </div>
 
   <div class="product-card__body">
     {% if product.type != blank %}<p class="product-card__category">{{ product.type | escape }}</p>{% endif %}
     <h3><a href="{{ product.url }}">{{ product.title | escape }}</a></h3>
     <p>{{ product.description | strip_html | truncatewords: 22 }}</p>
-
     <div class="product-card__buy">
       <span class="product-card__price">
         {% if product.price_varies %}
-          From {{ product.price_min | money }}
+          From {{ product.price_min | money_without_trailing_zeros }}
         {% else %}
-          {{ card_variant.price | money }}
-          {% if card_variant.compare_at_price > card_variant.price %}<s>{{ card_variant.compare_at_price | money }}</s>{% endif %}
+          {{ card_variant.price | money_without_trailing_zeros }}
+          {% if card_variant.compare_at_price > card_variant.price %}<s>{{ card_variant.compare_at_price | money_without_trailing_zeros }}</s>{% endif %}
         {% endif %}
       </span>
 

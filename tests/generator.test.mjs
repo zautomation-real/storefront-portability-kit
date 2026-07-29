@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { presentationLayout, productBodyHtml, productMediaFocalPoint, productZoomMode } from "../scripts/lib.mjs";
 import { renderProductPreview } from "../scripts/render-preview.mjs";
-import { combineShopifyProductCsv, productVariants, resolveVariantMedia, shopifyFallbackFooterSnippet, shopifyFallbackNavigationSnippet, shopifyFixtureImageSnippet, shopifyIndexTemplate, shopifyMediaManifest, shopifyPasswordTemplate, shopifyProductCsv, shopifyVariantMediaJsonSnippet, validateVariantMediaRules, wooProductCsv } from "../scripts/platform-output.mjs";
+import { cardMediaChoices, combineShopifyProductCsv, productVariants, resolveVariantMedia, shopifyCardMediaSelectorSnippet, shopifyFallbackFooterSnippet, shopifyFallbackNavigationSnippet, shopifyFixtureImageSnippet, shopifyIndexTemplate, shopifyMediaManifest, shopifyPasswordTemplate, shopifyProductCsv, shopifyVariantMediaJsonSnippet, validateVariantMediaRules, wooProductCsv } from "../scripts/platform-output.mjs";
 
 const brand = {
   id: "test-store",
@@ -34,6 +34,19 @@ const product = {
     { name: "Finish", values: ["Natural", { label: "Dark", priceModifier: 1500 }] },
     { name: "Service", values: ["Delivery", { label: "Installed", priceModifier: 3000 }] }
   ]
+};
+
+const cardSelectorProduct = {
+  ...product,
+  id: "finish-card-product",
+  name: "Finish card product",
+  cardMediaSelector: {
+    option: "Finish",
+    choices: [
+      { value: "Natural", swatch: "#C89155" },
+      { value: "Dark", swatch: "#222222" }
+    ]
+  }
 };
 
 test("presentation layouts use a closed public preset vocabulary", () => {
@@ -116,6 +129,82 @@ test("variant media prefers the most specific rule and rejects ambiguous matches
       { match: { Finish: "Dark" }, image: "assets/dark-again.webp" }
     ]
   }), /duplicate variantMedia rules/);
+});
+
+test("card media selectors resolve distinct media and render in preview and Shopify cards", () => {
+  const choices = cardMediaChoices(cardSelectorProduct);
+  assert.deepEqual(choices.map((choice) => choice.image), ["assets/product.webp", "assets/product-dark.webp"]);
+  assert.equal(new Set(choices.map((choice) => choice.image)).size, 2);
+
+  const preview = renderProductPreview(brand, product, { products: [product, cardSelectorProduct] });
+  assert.equal((preview.match(/data-card-media-selector/g) || []).length, 1);
+  assert.equal((preview.match(/data-card-media-choice/g) || []).length, 2);
+  assert.match(preview, /data-card-media-image="\.\.\/\.\.\/assets\/product\.webp"/);
+  assert.match(preview, /data-card-media-image="\.\.\/\.\.\/assets\/product-dark\.webp"/);
+
+  const shopify = shopifyCardMediaSelectorSnippet({ products: [cardSelectorProduct] });
+  assert.match(shopify, /\{% when 'finish-card-product' %\}/);
+  assert.equal((shopify.match(/data-card-media-choice/g) || []).length, 2);
+  assert.match(shopify, /brand-product\.webp/);
+  assert.match(shopify, /brand-product-dark\.webp/);
+});
+
+test("card media selectors reject invalid options, values, swatches and repeated media", () => {
+  assert.throws(() => validateVariantMediaRules({
+    ...cardSelectorProduct,
+    cardMediaSelector: {
+      ...cardSelectorProduct.cardMediaSelector,
+      option: "Material"
+    }
+  }), /cardMediaSelector references missing option Material/);
+
+  assert.throws(() => validateVariantMediaRules({
+    ...cardSelectorProduct,
+    cardMediaSelector: {
+      option: "Finish",
+      choices: [
+        { value: "Natural", swatch: "#C89155" },
+        { value: "Missing", swatch: "#222222" }
+      ]
+    }
+  }), /cardMediaSelector references missing value Finish=Missing/);
+
+  assert.throws(() => validateVariantMediaRules({
+    ...cardSelectorProduct,
+    cardMediaSelector: {
+      option: "Finish",
+      choices: [
+        { value: "Natural", swatch: "cedar" },
+        { value: "Dark", swatch: "#222222" }
+      ]
+    }
+  }), /needs a six-digit hex swatch/);
+
+  assert.throws(() => validateVariantMediaRules({
+    ...cardSelectorProduct,
+    variantMedia: [],
+    cardMediaSelector: {
+      option: "Finish",
+      choices: [
+        { value: "Natural", swatch: "#C89155" },
+        { value: "Dark", swatch: "#222222" }
+      ]
+    }
+  }), /must resolve every choice to different media/);
+});
+
+test("products without cardMediaSelector do not emit card media controls", () => {
+  const formLikeProduct = {
+    ...product,
+    id: "form-like-product",
+    name: "FORM-like product",
+    cardMediaSelector: undefined
+  };
+  const preview = renderProductPreview(brand, product, { products: [product, formLikeProduct] });
+  const shopify = shopifyCardMediaSelectorSnippet({ products: [formLikeProduct] });
+
+  assert.doesNotMatch(preview, /data-card-media-selector|data-card-media-choice/);
+  assert.doesNotMatch(shopify, /data-card-media-selector|data-card-media-choice|\{% when 'form-like-product' %\}/);
 });
 
 test("Shopify and WooCommerce CSVs keep every row aligned", () => {
@@ -364,6 +453,106 @@ test("responsive content reserves space for long headings, testimonials and cont
   assert.match(shared, /\.product-description\{[^}]*max-width:36rem[^}]*color:color-mix/);
   assert.match(shared, /\.product-option__input:checked\+\.product-option__label/);
   assert.doesNotMatch(shopify, /\.product-option__input:checked\+\.product-option__label/);
+  assert.match(shopify, /\.rte:not\(\.product-description\)\{max-width:52rem\}/);
+  assert.doesNotMatch(shopify, /\.rte\{max-width:52rem\}/);
+});
+
+test("shared card media runtime swaps media, restores responsive attributes and leaves link events alone", async () => {
+  const runtime = await readFile(new URL("../shared/storefront.js", import.meta.url), "utf8");
+  const functionStart = runtime.indexOf("function initCardMediaSelector(root)");
+  const functionEnd = runtime.indexOf("\nfunction initRelatedCarousel", functionStart);
+  assert.ok(functionStart >= 0 && functionEnd > functionStart);
+  const functionSource = runtime.slice(functionStart, functionEnd);
+  assert.doesNotMatch(functionSource, /stopPropagation/);
+
+  const initCardMediaSelector = Function(
+    "cardMediaSelectors",
+    `"use strict"; ${functionSource}; return initCardMediaSelector;`
+  )(new WeakSet());
+  const attributes = new Map([
+    ["src", "original.webp"],
+    ["srcset", "original-450.webp 450w, original-900.webp 900w"],
+    ["sizes", "(max-width: 700px) 100vw, 50vw"],
+    ["alt", "Original product"]
+  ]);
+  const image = {
+    getAttribute(name) { return attributes.has(name) ? attributes.get(name) : null; },
+    setAttribute(name, value) { attributes.set(name, String(value)); },
+    removeAttribute(name) { attributes.delete(name); },
+    get src() { return this.getAttribute("src"); },
+    set src(value) { this.setAttribute("src", value); },
+    get alt() { return this.getAttribute("alt"); },
+    set alt(value) { this.setAttribute("alt", value); }
+  };
+  const choice = (dataset) => {
+    const listeners = new Map();
+    return {
+      dataset,
+      addEventListener(type, listener) { listeners.set(type, listener); },
+      setAttribute(name, value) { this[name] = String(value); },
+      click(event) { listeners.get("click")?.(event); }
+    };
+  };
+  const originalChoice = choice({
+    cardMediaDefault: "true",
+    cardMediaImage: "original.webp",
+    cardMediaAlt: "Original product"
+  });
+  const alternateChoice = choice({
+    cardMediaDefault: "false",
+    cardMediaImage: "alternate.webp",
+    cardMediaAlt: "Alternate finish"
+  });
+  const choices = [originalChoice, alternateChoice];
+  const card = { querySelector: () => image };
+  const root = {
+    closest: () => card,
+    querySelectorAll: () => choices
+  };
+
+  initCardMediaSelector(root);
+  let propagationStopped = false;
+  alternateChoice.click({ stopPropagation() { propagationStopped = true; } });
+  assert.equal(propagationStopped, false);
+  assert.equal(image.getAttribute("src"), "alternate.webp");
+  assert.equal(image.getAttribute("alt"), "Alternate finish");
+  assert.equal(image.getAttribute("srcset"), null);
+  assert.equal(image.getAttribute("sizes"), null);
+  assert.equal(alternateChoice["aria-pressed"], "true");
+  assert.equal(originalChoice["aria-pressed"], "false");
+
+  originalChoice.click({ stopPropagation() { propagationStopped = true; } });
+  assert.equal(propagationStopped, false);
+  assert.equal(image.getAttribute("src"), "original.webp");
+  assert.equal(image.getAttribute("alt"), "Original product");
+  assert.equal(image.getAttribute("srcset"), "original-450.webp 450w, original-900.webp 900w");
+  assert.equal(image.getAttribute("sizes"), "(max-width: 700px) 100vw, 50vw");
+  assert.equal(originalChoice["aria-pressed"], "true");
+  assert.equal(alternateChoice["aria-pressed"], "false");
+});
+
+test("Shopify builds include the generated card media selector snippet", async () => {
+  const [buildScript, productCard] = await Promise.all([
+    readFile(new URL("../scripts/build.mjs", import.meta.url), "utf8"),
+    readFile(new URL("../adapters/shopify/snippets/product-card.liquid", import.meta.url), "utf8")
+  ]);
+
+  assert.match(buildScript, /snippets", "card-media-selector\.liquid"\), shopifyCardMediaSelectorSnippet\(catalog\)/);
+  assert.match(productCard, /\{% render 'card-media-selector', product: product %\}/);
+});
+
+test("Shopify customer-facing prices omit trailing zero decimals", async () => {
+  const templates = await Promise.all([
+    readFile(new URL("../adapters/shopify/snippets/product-card.liquid", import.meta.url), "utf8"),
+    readFile(new URL("../adapters/shopify/sections/main-product.liquid", import.meta.url), "utf8"),
+    readFile(new URL("../adapters/shopify/sections/main-cart.liquid", import.meta.url), "utf8"),
+    readFile(new URL("../adapters/shopify/sections/cart-drawer.liquid", import.meta.url), "utf8")
+  ]);
+
+  for (const template of templates) {
+    assert.match(template, /\|\s*money_without_trailing_zeros/);
+    assert.doesNotMatch(template, /\|\s*money(?!_)/);
+  }
 });
 
 test("Shopify product pages resolve native variants and preserve line-item properties", async () => {

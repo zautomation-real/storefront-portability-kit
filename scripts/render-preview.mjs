@@ -1,5 +1,5 @@
 import { escapeHtml, formatMoney, presentationLayout, productBodyHtml, productMediaFocalPoint, productZoomMode } from "./lib.mjs";
-import { productVariants } from "./platform-output.mjs";
+import { cardMediaChoices, productVariants } from "./platform-output.mjs";
 
 const action = (item, className = "button") =>
   `<a class="${className}" href="${escapeHtml(item.href)}">${escapeHtml(item.label)}</a>`;
@@ -34,11 +34,19 @@ function productCard(product, brand, { productRoot = "products/", assetRoot = ""
     : "";
   const needsConfiguration = (product.options || []).some((option) => option.values.length > 1) || (product.options || []).length > 1;
   const productUrl = `${productRoot}${escapeHtml(product.id)}/index.html`;
+  const cardMedia = cardMediaChoices(product);
+  const cardMediaControls = cardMedia.length
+    ? `<div class="product-card__media-selector" data-card-media-selector role="group" aria-label="Preview ${escapeHtml(cardMedia[0].optionName)}">${cardMedia.map((item, index) => `<button class="product-card__media-choice" type="button" data-card-media-choice data-card-media-image="${escapeHtml(`${assetRoot}${item.image}`)}" data-card-media-alt="${escapeHtml(item.alt)}" data-card-media-default="${index === 0}" aria-label="Preview ${escapeHtml(product.name)} in ${escapeHtml(item.label)}" aria-pressed="${index === 0}" title="${escapeHtml(item.label)}" style="--card-swatch:${escapeHtml(item.swatch)}"></button>`).join("")}</div>`
+    : "";
+  const initialCardMedia = cardMedia[0] || { image: product.image, alt: product.name };
   return `<article class="product-card">
-    <a class="product-card__media" href="${productUrl}">
-      ${media(`${assetRoot}${product.image}`, product.name)}
-      ${product.badge ? `<span class="product-card__badge">${escapeHtml(product.badge)}</span>` : ""}
-    </a>
+    <div class="product-card__visual">
+      <a class="product-card__media" href="${productUrl}">
+        ${media(`${assetRoot}${initialCardMedia.image}`, initialCardMedia.alt)}
+        ${product.badge ? `<span class="product-card__badge">${escapeHtml(product.badge)}</span>` : ""}
+      </a>
+      ${cardMediaControls}
+    </div>
     <div class="product-card__body">
       <p class="product-card__category">${escapeHtml(product.category)}</p>
       <h3><a href="${productUrl}">${escapeHtml(product.name)}</a></h3>

@@ -33,6 +33,27 @@
             }
           },
           "badge": { "type": "string" },
+          "cardMediaSelector": {
+            "type": "object",
+            "required": ["option", "choices"],
+            "properties": {
+              "option": { "type": "string", "minLength": 1 },
+              "choices": {
+                "type": "array",
+                "minItems": 2,
+                "items": {
+                  "type": "object",
+                  "required": ["value", "swatch"],
+                  "properties": {
+                    "value": { "type": "string", "minLength": 1 },
+                    "swatch": { "type": "string", "pattern": "^#[0-9A-Fa-f]{6}$" }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            },
+            "additionalProperties": false
+          },
           "variantMedia": {
             "type": "array",
             "items": {

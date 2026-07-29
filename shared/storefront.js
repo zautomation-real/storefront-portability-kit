@@ -17,6 +17,7 @@ const productZooms = new Set();
 const productZoomStates = new WeakMap();
 const relatedCarousels = new Set();
 const relatedCarouselStates = new WeakMap();
+const cardMediaSelectors = new WeakSet();
 
 const getMenuButton = () => document.querySelector("[data-menu-toggle]");
 const getNav = () => document.querySelector("#primary-nav");
@@ -231,6 +232,47 @@ function updateRelatedCarousel(track) {
 
 function scrollRelatedCarousel(track, direction) {
   track.scrollBy({ left: direction * Math.max(280, track.clientWidth * .82), behavior: prefersReducedMotion.matches ? "auto" : "smooth" });
+}
+
+function initCardMediaSelector(root) {
+  if (cardMediaSelectors.has(root)) return;
+  const card = root.closest(".product-card");
+  const image = card?.querySelector(".product-card__media img");
+  const choices = [...root.querySelectorAll("[data-card-media-choice]")];
+  if (!image || choices.length < 2) return;
+  cardMediaSelectors.add(root);
+
+  const original = {
+    src: image.getAttribute("src") || "",
+    srcset: image.getAttribute("srcset"),
+    sizes: image.getAttribute("sizes"),
+    alt: image.getAttribute("alt") || ""
+  };
+
+  const restoreAttribute = (name, value) => {
+    if (value == null) image.removeAttribute(name);
+    else image.setAttribute(name, value);
+  };
+
+  choices.forEach((choice) => {
+    choice.addEventListener("click", () => {
+      const isDefault = choice.dataset.cardMediaDefault === "true";
+      if (isDefault) {
+        restoreAttribute("src", original.src);
+        restoreAttribute("srcset", original.srcset);
+        restoreAttribute("sizes", original.sizes);
+        restoreAttribute("alt", original.alt);
+      } else {
+        const source = choice.dataset.cardMediaImage;
+        if (!source) return;
+        image.removeAttribute("srcset");
+        image.removeAttribute("sizes");
+        image.src = source;
+        image.alt = choice.dataset.cardMediaAlt || original.alt;
+      }
+      choices.forEach((candidate) => candidate.setAttribute("aria-pressed", String(candidate === choice)));
+    });
+  });
 }
 
 function initRelatedCarousel(track) {
@@ -1043,6 +1085,7 @@ window.matchMedia("(min-width: 901px)").addEventListener("change", (event) => {
 
 document.querySelectorAll("[data-product-quantity]").forEach((control) => syncProductQuantity(control));
 document.querySelectorAll("[data-product-zoom]").forEach(initProductZoom);
+document.querySelectorAll("[data-card-media-selector]").forEach(initCardMediaSelector);
 document.querySelectorAll("[data-related-carousel]").forEach(initRelatedCarousel);
 
 window.addEventListener("resize", () => {

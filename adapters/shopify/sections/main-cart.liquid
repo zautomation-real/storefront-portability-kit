@@ -36,13 +36,13 @@
               </label>
               <button class="quantity-control__button" type="button" data-quantity-increase aria-label="{{ section.settings.increase_label | escape }} {{ item.product.title | escape }}">&plus;</button>
             </div>
-            <strong>{{ item.final_line_price | money }}</strong>
+            <strong>{{ item.final_line_price | money_without_trailing_zeros }}</strong>
           </article>
         {% endfor %}
       </div>
       <div class="cart-summary">
         <div>
-          <p>{{ section.settings.subtotal_label | escape }} <strong>{{ cart.total_price | money }}</strong></p>
+          <p>{{ section.settings.subtotal_label | escape }} <strong>{{ cart.total_price | money_without_trailing_zeros }}</strong></p>
           <p>{{ section.settings.checkout_note | escape }}</p>
         </div>
         <a class="button button--quiet" href="{{ routes.root_url }}#shop">{{ section.settings.continue_label | escape }}</a>

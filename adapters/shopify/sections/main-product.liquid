@@ -34,9 +34,9 @@
     <h1>{{ product.title | escape }}</h1>
 
     <p class="main-product__price" aria-live="polite" aria-atomic="true">
-      <span data-product-price>{{ selected_variant.price | money }}</span>
+      <span data-product-price>{{ selected_variant.price | money_without_trailing_zeros }}</span>
       <s data-product-compare{% unless selected_variant.compare_at_price > selected_variant.price %} hidden{% endunless %}>
-        {% if selected_variant.compare_at_price > selected_variant.price %}{{ selected_variant.compare_at_price | money }}{% endif %}
+        {% if selected_variant.compare_at_price > selected_variant.price %}{{ selected_variant.compare_at_price | money_without_trailing_zeros }}{% endif %}
       </s>
     </p>
 
@@ -145,7 +145,7 @@
                 {% if variant == selected_variant %}selected{% endif %}
                 {% unless variant.available %}disabled{% endunless %}
               >
-                {{ variant.title | escape }} — {{ variant.price | money }}{% unless variant.available %} — {{ 'products.sold_out' | t }}{% endunless %}
+                {{ variant.title | escape }} — {{ variant.price | money_without_trailing_zeros }}{% unless variant.available %} — {{ 'products.sold_out' | t }}{% endunless %}
               </option>
             {% endfor %}
           </select>
@@ -198,9 +198,9 @@
             "available": {{ variant.available | json }},
             "options": {{ variant.options | json }},
             "price": {{ variant.price | json }},
-            "price_formatted": {{ variant.price | money | json }},
+            "price_formatted": {{ variant.price | money_without_trailing_zeros | json }},
             "compare_at_price": {{ variant.compare_at_price | default: 0 | json }},
-            "compare_at_price_formatted": {% if variant.compare_at_price > variant.price %}{{ variant.compare_at_price | money | json }}{% else %}""{% endif %},
+            "compare_at_price_formatted": {% if variant.compare_at_price > variant.price %}{{ variant.compare_at_price | money_without_trailing_zeros | json }}{% else %}""{% endif %},
             "media": {% if variant.featured_image %}{
               "src": {{ variant.featured_image | image_url: width: 2200 | json }},
               "srcset": {{ variant_image_srcset | strip | json }},
