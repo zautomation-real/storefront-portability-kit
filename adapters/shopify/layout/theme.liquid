@@ -24,7 +24,7 @@
     {{ 'shopify.css' | asset_url | stylesheet_tag }}
     <script src="{{ 'storefront.js' | asset_url }}" defer></script>
   </head>
-  <body data-brand="__BRAND_ID__" data-layout="__LAYOUT_PRESET__">
+  <body data-brand="__BRAND_ID__" data-layout="__LAYOUT_PRESET__" data-platform="shopify">
     <a class="skip-link" href="#MainContent">{{ 'accessibility.skip_to_content' | t }}</a>
     {% section 'announcement' %}
     {% section 'site-header' %}

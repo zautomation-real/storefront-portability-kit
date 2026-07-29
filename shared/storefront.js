@@ -1,4 +1,5 @@
 const body = document.body;
+const isNativeStorefront = body.dataset.platform === "shopify";
 const rootPath = body.dataset.root || "";
 const cartKey = `sfk-cart:${body.dataset.brand || "preview"}`;
 let drawerReturnFocus = null;
@@ -280,6 +281,7 @@ document.addEventListener("submit", (event) => {
 });
 
 document.addEventListener("change", (event) => {
+  if (isNativeStorefront) return;
   const productOption = event.target.closest("[data-product-option]");
   if (productOption) {
     updateProductForm(productOption.closest("form"));
@@ -294,12 +296,14 @@ document.addEventListener("change", (event) => {
   renderCart();
 });
 
-document.querySelector("[data-newsletter]")?.addEventListener("submit", (event) => {
-  event.preventDefault();
-  const button = event.currentTarget.querySelector("button");
-  button.textContent = "You are on the list";
-  button.disabled = true;
-});
+if (!isNativeStorefront) {
+  document.querySelector("[data-newsletter]")?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const button = event.currentTarget.querySelector("button");
+    button.textContent = "You are on the list";
+    button.disabled = true;
+  });
+}
 
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") {
@@ -327,5 +331,6 @@ window.matchMedia("(min-width: 901px)").addEventListener("change", (event) => {
   if (event.matches) closeMenu();
 });
 
-renderCart();
+if (isNativeStorefront) refreshCartCount().catch(() => {});
+else renderCart();
 document.querySelectorAll(".preview-product__form").forEach(updateProductForm);

@@ -105,7 +105,7 @@ export function renderPreview(brand, catalog) {
   <link rel="stylesheet" href="storefront.css">
   <script src="storefront.js" defer></script>
 </head>
-<body data-brand="${escapeHtml(brand.id)}" data-layout="${escapeHtml(layout)}" data-root="" data-locale="${escapeHtml(brand.locale)}" data-currency="${escapeHtml(brand.currency)}">
+<body data-brand="${escapeHtml(brand.id)}" data-layout="${escapeHtml(layout)}" data-platform="preview" data-root="" data-locale="${escapeHtml(brand.locale)}" data-currency="${escapeHtml(brand.currency)}">
   <a class="skip-link" href="#main">Skip to content</a>
   <div class="announcement">${escapeHtml(brand.announcement)}</div>
   <header class="site-header">
@@ -157,7 +157,7 @@ function nestedDocument(brand, { rootPath, title, description, content, bodyClas
   <link rel="stylesheet" href="${rootPath}storefront.css">
   <script src="${rootPath}storefront.js" defer></script>
 </head>
-<body class="${bodyClass}" data-brand="${escapeHtml(brand.id)}" data-layout="${escapeHtml(layout)}" data-root="${rootPath}" data-locale="${escapeHtml(brand.locale)}" data-currency="${escapeHtml(brand.currency)}">
+<body class="${bodyClass}" data-brand="${escapeHtml(brand.id)}" data-layout="${escapeHtml(layout)}" data-platform="preview" data-root="${rootPath}" data-locale="${escapeHtml(brand.locale)}" data-currency="${escapeHtml(brand.currency)}">
   <a class="skip-link" href="#main">Skip to content</a>
   <div class="announcement">${escapeHtml(brand.announcement)}</div>
   <header class="site-header">

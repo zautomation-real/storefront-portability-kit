@@ -181,6 +181,9 @@ test("Shopify cart and newsletter retain native platform submissions", async () 
   assert.match(newsletter, /privacy_text/);
   assert.match(runtime, /cart\/add\.js/);
   assert.match(runtime, /sections_url/);
+  assert.match(runtime, /body\.dataset\.platform === "shopify"/);
+  assert.match(runtime, /if \(!isNativeStorefront\)[\s\S]*?\[data-newsletter\]/);
+  assert.match(runtime, /if \(isNativeStorefront\) refreshCartCount/);
 });
 
 test("Shopify production shell includes password, 404 and SEO primitives", async () => {
@@ -195,6 +198,7 @@ test("Shopify production shell includes password, 404 and SEO primitives", async
   ]);
 
   assert.match(themeLayout, /settings\.brand_name/);
+  assert.match(themeLayout, /data-platform="shopify"/);
   assert.match(themeLayout, /request\.page_type == 'index'/);
   assert.match(themeLayout, /seo_title == shop\.name/);
   assert.match(themeLayout, /__SOCIAL_IMAGE_ASSET__.*asset_url/);
