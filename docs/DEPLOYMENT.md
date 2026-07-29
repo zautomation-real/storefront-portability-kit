@@ -29,10 +29,18 @@ Edit the shared contract and Shopify adapter in this repository, brand data in t
 ## Safe release order
 
 1. Validate the external brand root.
-2. Build each Shopify theme into an isolated output directory.
-3. Commit each compiled theme to its own deployment branch.
-4. Let Shopify update the connected draft theme.
-5. Review the draft in the theme editor and storefront preview.
-6. Publish only after an explicit release decision.
+2. Build each Shopify theme and its product CSV into an isolated output directory.
+3. Store the complete build as a reviewable artifact.
+4. When the product CSV changes, import that exact file with matching handles set to overwrite.
+5. Verify handles, SKUs, options, prices, descriptions and retained media in Shopify.
+6. Record approval of the exact catalogue checksum before deploying the theme.
+7. Commit each compiled theme to its own deployment branch.
+8. Let Shopify update the connected draft theme.
+9. Review the draft in the theme editor and storefront preview.
+10. Publish only after an explicit release decision.
+
+Shopify's GitHub theme connection does not update the native product database. A
+theme deployment is therefore incomplete when its generated product CSV has
+changed but that catalogue has not been imported and verified.
 
 When the authorised external adapter and seeder are supplied, the same build packages WooCommerce themes and WordPress Playground bundles as workflow artifacts. A live WooCommerce deployment still needs a site-specific transport such as SSH, SFTP or a managed release process.

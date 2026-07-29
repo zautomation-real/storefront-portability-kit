@@ -83,7 +83,7 @@ Local fixture artwork travels with the theme. Shopify product CSVs leave product
 
 ## Validation
 
-`npm run validate` performs the public release gate:
+`npm run validate` performs the public build gate:
 
 1. validates every brand, section, product and asset reference;
 2. tests variant expansion, CSV alignment and the public adapter contract;
@@ -91,6 +91,11 @@ Local fixture artwork travels with the theme. Shopify product CSVs leave product
 4. runs Shopify Theme Check against every compiled theme.
 
 Supplying both WooCommerce paths extends the same command with the native WooCommerce build, adapter checks and reproducible Playground packages. Supplying only one path fails instead of silently producing a partial release.
+
+The build gate validates generated files; it does not inspect or update a remote
+Shopify product database. A complete Shopify release must also import and verify
+the generated product CSV whenever its checksum changes. The connected deployment
+sequence is documented in [DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
 Create the available release ZIPs and checksums with:
 
