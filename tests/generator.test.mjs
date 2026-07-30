@@ -891,6 +891,7 @@ test("related products become a draggable single-row rail at compact widths", as
   assert.match(stylesheet, /\.product-grid--related[^}]+display:flex[^}]+overflow-x:auto/);
   assert.match(stylesheet, /scroll-snap-type:x mandatory/);
   assert.match(stylesheet, /\.product-grid--related \.product-card\{flex:0 0/);
+  assert.match(stylesheet, /html,body\{overflow-x:clip\}/);
 });
 
 test("Shopify keeps sold-out configurations explorable while blocking their purchase", async () => {

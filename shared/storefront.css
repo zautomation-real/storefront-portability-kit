@@ -1,5 +1,6 @@
 *,*::before,*::after{box-sizing:border-box}
-html{scroll-behavior:smooth;overflow-x:clip;scrollbar-gutter:stable}
+html{scroll-behavior:smooth;scrollbar-gutter:stable}
+html,body{overflow-x:clip}
 body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--font-body);font-size:16px;line-height:1.5}
 body.drawer-open{overflow:clip}
 [hidden]{display:none!important}
