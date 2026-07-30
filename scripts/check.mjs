@@ -231,6 +231,9 @@ if (wooCommerceAdapterRoot) {
   if (!wooScript?.includes("wc-blocks_removed_from_cart") || !wooScript?.includes("wc/store/v1/cart")) {
     fail("woocommerce", "bag count must stay synchronized with native Cart and Checkout blocks");
   }
+  if (!wooScript?.includes("data-woo-engraving-property") || !wooFunctions?.includes("woocommerce_add_cart_item_data") || !wooFunctions?.includes("woocommerce_checkout_create_order_line_item")) {
+    fail("woocommerce", "engraving choices must collect, validate and preserve their native line-item text");
+  }
   if (!wooStyles?.includes(".woocommerce div.product div.images") || !wooStyles?.includes(".sfk-native-variation-select")) {
     fail("woocommerce", "native product layouts must reset WooCommerce widths and preserve accessible visual options");
   }
