@@ -18,7 +18,7 @@ Brand language, navigation, tokens, a generic presentation preset and section or
 
 ## 3. Keep commerce native
 
-Liquid renders Shopify objects and forms. When the authorised WooCommerce extension is supplied, PHP and WordPress hooks render WooCommerce objects and forms. Cart, checkout, customer accounts, inventory and payment state remain owned by each platform.
+Liquid renders Shopify objects and forms. When the authorised WooCommerce extension is supplied, PHP and WordPress hooks render WooCommerce objects and forms. The same option contract becomes native WooCommerce variations: resolved media is assigned to each variation, visual controls remain synchronized with the underlying selects, and card swatches preview media without changing purchase state. Cart, checkout, customer accounts, inventory and payment state remain owned by each platform.
 
 ## 4. Generate, then verify
 

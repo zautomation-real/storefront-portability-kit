@@ -6,11 +6,16 @@ import { readCatalogSource } from "./catalog-source.mjs";
 
 const args = parseArgs(process.argv.slice(2));
 const { brandsRoot } = resolveWorkspacePaths(args);
-const { adapterRoot: wooCommerceAdapterRoot } = resolveWooCommercePaths(args);
+const { adapterRoot: wooCommerceAdapterRoot, seedFile: wooCommerceSeedFile } = resolveWooCommercePaths(args);
 const shopifyRoot = path.join(root, "adapters", "shopify");
 const wooRenderer = wooCommerceAdapterRoot
   ? await readFile(path.join(wooCommerceAdapterRoot, "inc", "storefront-kit.php"), "utf8")
   : undefined;
+const wooHeader = wooCommerceAdapterRoot ? await readFile(path.join(wooCommerceAdapterRoot, "header.php"), "utf8") : undefined;
+const wooFunctions = wooCommerceAdapterRoot ? await readFile(path.join(wooCommerceAdapterRoot, "functions.php"), "utf8") : undefined;
+const wooScript = wooCommerceAdapterRoot ? await readFile(path.join(wooCommerceAdapterRoot, "assets", "woocommerce.js"), "utf8") : undefined;
+const wooStyles = wooCommerceAdapterRoot ? await readFile(path.join(wooCommerceAdapterRoot, "assets", "woocommerce.css"), "utf8") : undefined;
+const wooSeed = wooCommerceSeedFile ? await readFile(wooCommerceSeedFile, "utf8") : undefined;
 const supportedSections = ["proof-strip", "product-grid", "editorial-split", "steps", "testimonials", "comparison", "newsletter"];
 const entries = await readdir(brandsRoot, { withFileTypes: true });
 const brands = entries.filter((item) => item.isDirectory());
@@ -212,6 +217,27 @@ for (const type of supportedSections) {
     fail("shopify", `missing section adapter ${type}.liquid`);
   }
   if (wooRenderer && !wooRenderer.includes(`$type === '${type}'`)) fail("woocommerce", `missing section renderer for ${type}`);
+}
+
+if (wooCommerceAdapterRoot) {
+  if (!wooHeader?.includes('data-layout="')) fail("woocommerce", "header must expose the shared layout preset");
+  if (!wooHeader?.includes('data-platform="woocommerce"')) fail("woocommerce", "header must identify the WooCommerce runtime");
+  if (!wooRenderer?.includes("data-card-media-selector") || !wooRenderer?.includes("sfk_resolve_variant_media")) {
+    fail("woocommerce", "product cards must implement the shared variant-media selector contract");
+  }
+  if (!wooFunctions?.includes("woocommerce_add_to_cart_fragments")) fail("woocommerce", "bag count must refresh after native AJAX additions");
+  if (!wooFunctions?.includes("assets/woocommerce.js")) fail("woocommerce", "native variation controls must load their adapter runtime");
+  if (!wooScript?.includes("woocommerce_update_variation_values")) fail("woocommerce", "visual option controls must stay synchronized with native variations");
+  if (!wooScript?.includes("wc-blocks_removed_from_cart") || !wooScript?.includes("wc/store/v1/cart")) {
+    fail("woocommerce", "bag count must stay synchronized with native Cart and Checkout blocks");
+  }
+  if (!wooStyles?.includes(".woocommerce div.product div.images") || !wooStyles?.includes(".sfk-native-variation-select")) {
+    fail("woocommerce", "native product layouts must reset WooCommerce widths and preserve accessible visual options");
+  }
+  if (!wooSeed?.includes("sfk_seed_resolve_variant_media") || !wooSeed?.includes("set_image_id($variation_image_id)")) {
+    fail("woocommerce", "the catalogue seed must assign resolved media to every native variation");
+  }
+  if (!wooSeed?.includes("sfk_seed_sku_part")) fail("woocommerce", "seeded variation SKUs must match the portable CSV convention");
 }
 
 for (const directory of [path.join(shopifyRoot, "config"), path.join(shopifyRoot, "templates")]) {
