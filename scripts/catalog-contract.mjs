@@ -1,4 +1,5 @@
 import { isSafeSlug } from "./lib.mjs";
+import { optionPresentationErrors } from "./option-presentation.mjs";
 import { assertUniqueShopifyVariantSkus, productVariants } from "./platform-output.mjs";
 
 function isObject(value) {
@@ -117,6 +118,7 @@ export function assertPortableCatalog(brand, catalog) {
           fail(errors, valueScope, "priceModifier must be a safe integer");
         }
       }
+      for (const message of optionPresentationErrors(option)) fail(errors, optionScope, message);
     }
 
     try {

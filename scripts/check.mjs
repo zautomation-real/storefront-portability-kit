@@ -1,6 +1,7 @@
 import { readFile, readdir, stat } from "node:fs/promises";
 import path from "node:path";
 import { isSafeSlug, parseArgs, readJson, resolveWooCommercePaths, resolveWorkspacePaths, root } from "./lib.mjs";
+import { optionPresentationErrors } from "./option-presentation.mjs";
 import { assertUniqueShopifyVariantSkus, productVariants } from "./platform-output.mjs";
 import { readCatalogSource } from "./catalog-source.mjs";
 
@@ -139,6 +140,7 @@ for (const entry of brands) {
         if (!Number.isInteger(value.priceModifier)) fail(scope, `${option.name || "option"}/${value.label} priceModifier must be an integer`);
         if (product.price + value.priceModifier < 0) fail(scope, `${option.name || "option"}/${value.label} produces a negative price`);
       }
+      for (const message of optionPresentationErrors(option)) fail(`${scope}/${option.name || "option"}`, message);
       optionValuesByName.set(option.name, values);
     }
 

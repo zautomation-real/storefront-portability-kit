@@ -1,4 +1,5 @@
 import { escapeHtml, productBodyHtml, productMediaFocalPoint } from "./lib.mjs";
+import { productOptionPresentations } from "./option-presentation.mjs";
 
 function sectionId(index, type) {
   return `${String(index + 1).padStart(2, "0")}_${type.replaceAll("-", "_")}`;
@@ -439,6 +440,15 @@ export function shopifyVariantMediaJsonSnippet(catalog) {
     return `{% when '${product.id}' %}{"optionNames":${scriptSafeJson((product.options || []).map((option) => option.name))},"fallback":{"src":{{ '${fallbackAsset}' | asset_url | json }},"alt":${scriptSafeJson(product.name)},"width":900,"height":1100},"rules":[${rules}]}`;
   }).join("\n");
   return `{% case product.handle %}\n${cases}\n{% else %}{}\n{% endcase %}`;
+}
+
+export function shopifyOptionPresentationsSnippet(catalog) {
+  const cases = catalog.products
+    .map((product) => ({ id: product.id, presentations: productOptionPresentations(product) }))
+    .filter(({ presentations }) => presentations.length)
+    .map(({ id, presentations }) => `{% when '${id}' %}${scriptSafeJson(presentations)}`)
+    .join("\n");
+  return `{% case product.handle %}\n${cases}\n{% else %}[]\n{% endcase %}`;
 }
 
 export function shopifyCardMediaSelectorSnippet(catalog) {

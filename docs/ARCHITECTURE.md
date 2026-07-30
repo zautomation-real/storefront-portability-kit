@@ -25,6 +25,8 @@ The adapter layer owns:
 
 No adapter emulates the other platform's backend. Shared code stops at the browser contract and portable content.
 
+Option presentation metadata follows the same boundary. Adapters keep the platform's canonical option value untouched and use the shared browser contract only to relabel it. This avoids duplicated variants while preserving a stable no-JavaScript fallback and native stock ownership.
+
 ## Output
 
 `npm run build -- --brand <id> --target all` produces the public outputs:

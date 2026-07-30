@@ -11,6 +11,7 @@ The repository includes one deliberately neutral fixture, `Field Supply`, so the
 - brand language, navigation, catalogue data and design tokens;
 - a section vocabulary for composing the storefront;
 - product options and price modifiers;
+- optional regional or measurement labels for one canonical option value;
 - explicit card-level colour and finish previews where the product form remains unchanged;
 - responsive presentation and progressive browser behaviour;
 - validation rules and repeatable build commands.
@@ -80,6 +81,8 @@ The equivalent environment variables are `SFK_BRANDS_ROOT` and `SFK_OUTPUT_ROOT`
 ## One editable catalogue
 
 Each brand directory contains exactly one catalogue source: `catalog.json` or `catalog.csv`. Both formats describe the same portable product model; the CSV keeps one product per row and stores structured options, details and media rules as compact JSON cells. Builds reject a missing source and also reject two competing sources instead of guessing which one wins. Catalogue writes use a temporary file and atomic replacement so an interrupted update cannot leave half a JSON or CSV document behind.
+
+An option may add a `presentation` block and explicit `displayLabels` on each value. This lets a product show one canonical variant through regional or measurement systems—ring sizes, paper formats or unit conversions—without multiplying variants, inventory or SKUs. The default canonical label remains the no-JavaScript fallback. Every declared system must map every canonical value, and approximations must be marked explicitly.
 
 ## Shopify catalogue media
 

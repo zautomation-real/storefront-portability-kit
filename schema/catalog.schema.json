@@ -91,11 +91,45 @@
                         "required": ["label"],
                         "properties": {
                           "label": { "type": "string", "minLength": 1 },
-                          "priceModifier": { "type": "integer" }
-                        }
+                          "priceModifier": { "type": "integer" },
+                          "displayLabels": {
+                            "type": "object",
+                            "minProperties": 1,
+                            "propertyNames": { "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+                            "additionalProperties": { "type": "string", "minLength": 1 }
+                          },
+                          "displayNote": { "type": "string", "minLength": 1 }
+                        },
+                        "additionalProperties": false
                       }
                     ]
                   }
+                },
+                "presentation": {
+                  "type": "object",
+                  "required": ["label", "controlLabel", "defaultSystem", "systems"],
+                  "properties": {
+                    "label": { "type": "string", "minLength": 1 },
+                    "controlLabel": { "type": "string", "minLength": 1 },
+                    "defaultSystem": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+                    "propertyLabel": { "type": "string", "minLength": 1 },
+                    "help": { "type": "string", "minLength": 1 },
+                    "systems": {
+                      "type": "array",
+                      "minItems": 2,
+                      "items": {
+                        "type": "object",
+                        "required": ["id", "label"],
+                        "properties": {
+                          "id": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+                          "label": { "type": "string", "minLength": 1 },
+                          "approximate": { "type": "boolean" }
+                        },
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "additionalProperties": false
                 }
               }
             }

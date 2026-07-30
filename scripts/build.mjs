@@ -2,7 +2,7 @@ import { rm, stat } from "node:fs/promises";
 import path from "node:path";
 import { assertNoBuildTokens, assertSafeSlug, copyDirectoryFlat, copyIfPresent, parseArgs, presentationLayout, productZoomMode, readJson, replaceTokens, resetDir, resolveWooCommercePaths, resolveWorkspacePaths, root, writeText } from "./lib.mjs";
 import { renderCartPreview, renderPreview, renderProductPreview } from "./render-preview.mjs";
-import { brandCss, shopifyCardMediaSelectorSnippet, shopifyFallbackFooterSnippet, shopifyFallbackNavigationSnippet, shopifyFixtureImageSnippet, shopifyIndexTemplate, shopifyMediaManifest, shopifyPasswordTemplate, shopifyProductCsv, shopifyVariantMediaJsonSnippet, wooProductCsv } from "./platform-output.mjs";
+import { brandCss, shopifyCardMediaSelectorSnippet, shopifyFallbackFooterSnippet, shopifyFallbackNavigationSnippet, shopifyFixtureImageSnippet, shopifyIndexTemplate, shopifyMediaManifest, shopifyOptionPresentationsSnippet, shopifyPasswordTemplate, shopifyProductCsv, shopifyVariantMediaJsonSnippet, wooProductCsv } from "./platform-output.mjs";
 import { readCatalogSource } from "./catalog-source.mjs";
 
 const args = parseArgs(process.argv.slice(2));
@@ -59,6 +59,7 @@ async function buildAdapter(name, source = path.join(root, "adapters", name)) {
     await writeText(path.join(output, "templates", "password.json"), shopifyPasswordTemplate(brand));
     await writeText(path.join(output, "snippets", "fixture-product-image.liquid"), shopifyFixtureImageSnippet(catalog));
     await writeText(path.join(output, "snippets", "fixture-variant-media.liquid"), shopifyVariantMediaJsonSnippet(catalog));
+    await writeText(path.join(output, "snippets", "option-presentations.liquid"), shopifyOptionPresentationsSnippet(catalog));
     await writeText(path.join(output, "snippets", "card-media-selector.liquid"), shopifyCardMediaSelectorSnippet(catalog));
     await writeText(path.join(output, "snippets", "fallback-navigation.liquid"), shopifyFallbackNavigationSnippet(brand));
     await writeText(path.join(output, "snippets", "fallback-footer.liquid"), shopifyFallbackFooterSnippet(brand));

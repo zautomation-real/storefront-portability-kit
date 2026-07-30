@@ -4,8 +4,9 @@ import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 import { assertSafeSlug, copyDirectoryFlat, isSafeSlug, presentationLayout, productBodyHtml, productMediaFocalPoint, productZoomMode } from "../scripts/lib.mjs";
+import { productOptionPresentations } from "../scripts/option-presentation.mjs";
 import { renderProductPreview } from "../scripts/render-preview.mjs";
-import { cardMediaChoices, combineShopifyProductCsv, productVariants, resolveVariantMedia, shopifyCardMediaSelectorSnippet, shopifyFallbackFooterSnippet, shopifyFallbackNavigationSnippet, shopifyFixtureImageSnippet, shopifyIndexTemplate, shopifyMediaManifest, shopifyPasswordTemplate, shopifyProductCsv, shopifyVariantMediaJsonSnippet, validateVariantMediaRules, wooProductCsv } from "../scripts/platform-output.mjs";
+import { cardMediaChoices, combineShopifyProductCsv, productVariants, resolveVariantMedia, shopifyCardMediaSelectorSnippet, shopifyFallbackFooterSnippet, shopifyFallbackNavigationSnippet, shopifyFixtureImageSnippet, shopifyIndexTemplate, shopifyMediaManifest, shopifyOptionPresentationsSnippet, shopifyPasswordTemplate, shopifyProductCsv, shopifyVariantMediaJsonSnippet, shopifyVariantSku, validateVariantMediaRules, wooProductCsv } from "../scripts/platform-output.mjs";
 
 const brand = {
   id: "test-store",
@@ -49,6 +50,30 @@ const cardSelectorProduct = {
       { value: "Dark", swatch: "#222222" }
     ]
   }
+};
+
+const presentationProduct = {
+  ...product,
+  id: "presented-product",
+  variantMedia: undefined,
+  options: [
+    {
+      name: "UK size",
+      presentation: {
+        label: "Ring size",
+        controlLabel: "Size system",
+        defaultSystem: "uk-au",
+        systems: [
+          { id: "uk-au", label: "UK / AU" },
+          { id: "us-ca", label: "US / CA", approximate: true },
+        ],
+      },
+      values: [
+        { label: "J", displayLabels: { "uk-au": "J", "us-ca": "5" } },
+        { label: "K", priceModifier: 500, displayLabels: { "uk-au": "K", "us-ca": "5½" } },
+      ],
+    },
+  ],
 };
 
 test("path-bearing identifiers are restricted to safe slugs", () => {
@@ -129,6 +154,33 @@ test("variant generation creates the full Cartesian product with additive prices
     "assets/product-dark.webp",
     "assets/product-dark-installed.webp"
   ]);
+});
+
+test("option presentation systems relabel canonical values without changing variants or SKUs", () => {
+  const variants = productVariants(presentationProduct);
+  assert.deepEqual(variants.map((variant) => variant.values[0].label), ["J", "K"]);
+  assert.deepEqual(variants.map((variant) => variant.price), [10000, 10500]);
+  assert.deepEqual(variants.map((variant) => shopifyVariantSku(brand, presentationProduct, variant)), [
+    "test-store-presented-product-j",
+    "test-store-presented-product-k",
+  ]);
+  assert.deepEqual(variants.map((variant) => shopifyProductCsv(brand, { products: [presentationProduct] }).includes(variant.values[0].label)), [true, true]);
+
+  const presentations = productOptionPresentations(presentationProduct);
+  assert.equal(presentations[0].values[1].labels["us-ca"], "5½");
+  const preview = renderProductPreview(brand, presentationProduct, { products: [presentationProduct, product] });
+  assert.match(preview, /data-option-presentations/);
+  assert.match(preview, /&quot;us-ca&quot;|"us-ca"/);
+  const snippet = shopifyOptionPresentationsSnippet({ products: [presentationProduct] });
+  assert.match(snippet, /presented-product/);
+  assert.match(snippet, /Ring size/);
+});
+
+test("option presentation controls stay outside WooCommerce's native variation table", async () => {
+  const runtime = await readFile(new URL("../shared/storefront.js", import.meta.url), "utf8");
+  assert.match(runtime, /fieldset\.closest\("table\.variations"\)/);
+  assert.match(runtime, /nativeVariationTable\.insertAdjacentElement\("beforebegin", controlsRoot\)/);
+  assert.match(runtime, /controlsRoot\.append\(control\)/);
 });
 
 test("variant media prefers the most specific rule and rejects ambiguous matches", () => {

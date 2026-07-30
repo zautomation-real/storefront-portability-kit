@@ -20,6 +20,7 @@ const relatedCarouselStates = new WeakMap();
 const cardMediaSelectors = new WeakSet();
 const cardMediaPreloads = new Map();
 let cardMediaPreloadObserver = null;
+let optionPresentationIndex = 0;
 
 const getMenuButton = () => document.querySelector("[data-menu-toggle]");
 const getNav = () => document.querySelector("#primary-nav");
@@ -487,6 +488,183 @@ function lineKey(item) {
   return `${item.id}:${item.option || ""}`;
 }
 
+function storedOptionPresentationSystem(key, fallback) {
+  try {
+    return window.localStorage.getItem(key) || fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function rememberOptionPresentationSystem(key, value) {
+  try {
+    window.localStorage.setItem(key, value);
+  } catch {
+    // Storage is a convenience. The canonical option remains usable without it.
+  }
+}
+
+function initOptionPresentations(scope = document) {
+  const scripts = [...scope.querySelectorAll("script[data-option-presentations]")];
+  scripts.forEach((script) => {
+    let configurations = [];
+    try {
+      configurations = JSON.parse(script.textContent || "[]");
+    } catch {
+      return;
+    }
+    if (!Array.isArray(configurations) || !configurations.length) return;
+    const productRoot = script.closest("main,.main-product,.product") || scope;
+    const form = productRoot.querySelector("form");
+
+    configurations.forEach((configuration) => {
+      const optionIndex = Number(configuration.optionIndex);
+      const fieldset = productRoot.querySelector(`[data-product-option-group][data-option-index="${optionIndex}"]`);
+      if (!fieldset || fieldset.dataset.optionPresentationEnhanced === "true") return;
+      const systems = Array.isArray(configuration.systems) ? configuration.systems : [];
+      const values = Array.isArray(configuration.values) ? configuration.values : [];
+      if (systems.length < 2 || !values.length) return;
+
+      const legend = fieldset.querySelector("legend");
+      if (legend) legend.textContent = configuration.label || configuration.optionName || "Option";
+      fieldset.classList.add("product-option--presented");
+      optionPresentationIndex += 1;
+      const controlId = `OptionPresentation-${optionPresentationIndex}`;
+      const statusId = `${controlId}-status`;
+      const helpId = `${controlId}-help`;
+      const control = document.createElement("div");
+      control.className = "option-presentation";
+      const controlLabel = document.createElement("label");
+      controlLabel.className = "option-presentation__label";
+      controlLabel.htmlFor = controlId;
+      controlLabel.textContent = configuration.controlLabel || "Display";
+      const select = document.createElement("select");
+      select.id = controlId;
+      select.className = "option-presentation__select";
+      select.setAttribute("data-option-presentation-select", "");
+      systems.forEach((system) => {
+        const option = document.createElement("option");
+        option.value = system.id;
+        option.textContent = system.label;
+        select.append(option);
+      });
+      control.append(controlLabel, select);
+
+      const valuesRoot = fieldset.querySelector(".product-option__values");
+      const nativeVariationTable = fieldset.closest("table.variations");
+      if (nativeVariationTable && form) {
+        let controlsRoot = form.querySelector(":scope > [data-option-presentation-controls]");
+        if (!controlsRoot) {
+          controlsRoot = document.createElement("div");
+          controlsRoot.className = "option-presentations";
+          controlsRoot.setAttribute("data-option-presentation-controls", "");
+          nativeVariationTable.insertAdjacentElement("beforebegin", controlsRoot);
+        }
+        controlsRoot.append(control);
+      } else {
+        (valuesRoot || legend || fieldset).insertAdjacentElement(valuesRoot ? "beforebegin" : "afterend", control);
+      }
+      const status = document.createElement("p");
+      status.className = "option-presentation__status";
+      status.id = statusId;
+      status.setAttribute("aria-live", "polite");
+      (valuesRoot || control).insertAdjacentElement("afterend", status);
+      const describedBy = [statusId];
+      if (configuration.help) {
+        const help = document.createElement("p");
+        help.className = "option-presentation__help";
+        help.id = helpId;
+        help.textContent = configuration.help;
+        status.insertAdjacentElement("afterend", help);
+        describedBy.push(helpId);
+      }
+      select.setAttribute("aria-describedby", describedBy.join(" "));
+      fieldset.setAttribute("aria-describedby", describedBy.join(" "));
+
+      const inputs = [...fieldset.querySelectorAll("[data-product-option]")];
+      const inputLabels = new Map(inputs.map((input) => [
+        input,
+        [...fieldset.querySelectorAll("label")].find((label) => label.htmlFor === input.id),
+      ]));
+      let propertyInput = null;
+      if (isNativeStorefront && form) {
+        propertyInput = document.createElement("input");
+        propertyInput.type = "hidden";
+        propertyInput.name = `properties[${configuration.propertyLabel || `${configuration.label || "Option"} reference`}]`;
+        propertyInput.setAttribute("data-option-presentation-reference", String(optionIndex));
+        form.append(propertyInput);
+      }
+
+      const storageKey = `sfk-option-presentation:${body.dataset.brand || "storefront"}:${configuration.optionName || optionIndex}`;
+      const allowedSystems = new Set(systems.map((system) => system.id));
+      const preferred = storedOptionPresentationSystem(storageKey, configuration.defaultSystem);
+      select.value = allowedSystems.has(preferred) ? preferred : configuration.defaultSystem;
+
+      const update = () => {
+        const system = systems.find((candidate) => candidate.id === select.value) || systems[0];
+        const defaultSystem = systems.find((candidate) => candidate.id === configuration.defaultSystem) || systems[0];
+        const visibleValues = [];
+        inputs.forEach((input) => {
+          const canonical = input.dataset.optionCanonicalValue || input.value;
+          const value = values.find((candidate) => candidate.canonical === canonical);
+          const visible = value?.labels?.[system.id] || canonical;
+          visibleValues.push(visible);
+          const label = inputLabels.get(input);
+          if (label) label.textContent = visible;
+          input.dataset.optionDisplayName = configuration.label || configuration.optionName || "Option";
+          input.dataset.optionDisplayLabel = system.id === configuration.defaultSystem
+            ? visible
+            : `${system.label} ${visible} (${defaultSystem.label} ${canonical})`;
+        });
+        const selected = inputs.find((input) => input.checked) || inputs[0];
+        const selectedCanonical = selected?.dataset.optionCanonicalValue || selected?.value || "";
+        const value = values.find((candidate) => candidate.canonical === selectedCanonical);
+        const visible = value?.labels?.[system.id] || selectedCanonical;
+        const approximation = system.approximate ? "Approx. " : "";
+        const isDefault = system.id === configuration.defaultSystem;
+        status.hidden = isDefault;
+        status.textContent = isDefault
+          ? ""
+          : `${approximation}${system.label} ${visible} · ${defaultSystem.label} ${selectedCanonical}${value?.note ? ` · ${value.note}` : ""}`;
+        const reference = system.id === configuration.defaultSystem
+          ? `${system.label} ${visible}`
+          : (selected?.dataset.optionDisplayLabel || selected?.value || "");
+        if (propertyInput) {
+          propertyInput.disabled = isDefault;
+          propertyInput.value = isDefault ? "" : reference;
+        }
+        fieldset.dataset.optionPresentationPropertyLabel = configuration.propertyLabel || `${configuration.label || "Option"} reference`;
+        fieldset.dataset.optionPresentationReference = reference;
+        fieldset.dispatchEvent(new CustomEvent("sfk:option-presentation-change", {
+          bubbles: true,
+          detail: {
+            optionIndex,
+            optionName: configuration.optionName || "",
+            label: configuration.label || configuration.optionName || "Option",
+            propertyLabel: fieldset.dataset.optionPresentationPropertyLabel,
+            reference,
+            systemId: system.id,
+            systemLabel: system.label,
+            isDefault,
+            approximate: system.approximate === true,
+            visibleValues,
+          },
+        }));
+      };
+
+      select.addEventListener("change", () => {
+        rememberOptionPresentationSystem(storageKey, select.value);
+        update();
+      });
+      inputs.forEach((input) => input.addEventListener("change", update));
+      fieldset.dataset.optionPresentationEnhanced = "true";
+      update();
+    });
+  });
+}
+
+window.StorefrontKitOptionPresentations = { init: initOptionPresentations };
+
 function previewQuantityControl(item) {
   const key = escapeMarkup(lineKey(item));
   const name = escapeMarkup(item.name);
@@ -520,7 +698,7 @@ function configurationFor(form) {
     .filter((control) => control.type !== "radio" || control.checked);
   const engraving = form?.querySelector("[data-preview-engraving-input]:not([disabled])")?.value.trim();
   const option = [
-    ...controls.map((control) => `${control.dataset.optionName}: ${control.value}`),
+    ...controls.map((control) => `${control.dataset.optionDisplayName || control.dataset.optionName}: ${control.dataset.optionDisplayLabel || control.value}`),
     engraving ? `Engraving text: ${engraving}` : ""
   ].filter(Boolean).join(" / ");
   const modifier = controls.reduce((total, control) => {
@@ -1147,6 +1325,7 @@ document.querySelectorAll("[data-product-quantity]").forEach((control) => syncPr
 document.querySelectorAll("[data-product-zoom]").forEach(initProductZoom);
 document.querySelectorAll("[data-card-media-selector]").forEach(initCardMediaSelector);
 document.querySelectorAll("[data-related-carousel]").forEach(initRelatedCarousel);
+initOptionPresentations();
 
 window.addEventListener("resize", () => {
   resetAllProductZooms();

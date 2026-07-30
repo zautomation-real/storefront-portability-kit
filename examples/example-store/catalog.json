@@ -10,7 +10,23 @@
       "description": "A lay-flat notebook with a quiet dot grid, sturdy covers and room for plans that change shape.",
       "badge": "New",
       "options": [
-        { "name": "Format", "values": ["A5", { "label": "B5", "priceModifier": 400 }] },
+        {
+          "name": "Format",
+          "presentation": {
+            "label": "Notebook size",
+            "controlLabel": "Show sizes as",
+            "defaultSystem": "iso",
+            "systems": [
+              { "id": "iso", "label": "ISO" },
+              { "id": "metric", "label": "Millimetres" },
+              { "id": "imperial", "label": "Inches", "approximate": true }
+            ]
+          },
+          "values": [
+            { "label": "A5", "displayLabels": { "iso": "A5", "metric": "148 × 210 mm", "imperial": "5.8 × 8.3 in" } },
+            { "label": "B5", "priceModifier": 400, "displayLabels": { "iso": "B5", "metric": "176 × 250 mm", "imperial": "6.9 × 9.8 in" } }
+          ]
+        },
         { "name": "Cover", "values": ["Moss", "Clay"] }
       ]
     },

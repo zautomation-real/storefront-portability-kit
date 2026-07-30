@@ -28,6 +28,39 @@ test("the portable catalogue contract accepts a valid source", () => {
   )), true);
 });
 
+test("the portable catalogue contract validates complete option presentation systems", () => {
+  const presented = product("one", {
+    options: [{
+      name: "Canonical size",
+      presentation: {
+        label: "Size",
+        controlLabel: "Size system",
+        defaultSystem: "alpha",
+        systems: [{ id: "alpha", label: "Alpha" }, { id: "numeric", label: "Numeric", approximate: true }],
+      },
+      values: [
+        { label: "A", displayLabels: { alpha: "A", numeric: "1" } },
+        { label: "B", displayLabels: { alpha: "B", numeric: "2" } },
+      ],
+    }],
+  });
+  assert.equal(assertPortableCatalog(brand, catalog(presented, product("two"), product("three"))), true);
+
+  const missing = structuredClone(presented);
+  delete missing.options[0].values[1].displayLabels.numeric;
+  assert.throws(
+    () => assertPortableCatalog(brand, catalog(missing, product("two"), product("three"))),
+    /value B is missing display label numeric/,
+  );
+
+  const invalidDefault = structuredClone(presented);
+  invalidDefault.options[0].presentation.defaultSystem = "missing";
+  assert.throws(
+    () => assertPortableCatalog(brand, catalog(invalidDefault, product("two"), product("three"))),
+    /presentation.defaultSystem missing is not declared/,
+  );
+});
+
 test("the portable catalogue contract fails closed on duplicate product ids", () => {
   assert.throws(
     () => assertPortableCatalog(brand, catalog(product("same"), product("same"), product("other"))),
