@@ -146,8 +146,13 @@ tests/                contract and public-boundary tests
 docs/                 method and runtime guides
 ```
 
+## Maintainer
+
+We maintain this kit at [Webs del Camp](https://websdelcamp.cat/es?utm_source=github&utm_medium=referral&utm_campaign=storefront_portability_2026_10_03&utm_content=readme_author), a web design, development and automation studio working with small businesses across Spain from Tarragona. Our [Spanish guide to commissioning a website](https://websdelcamp.cat/es/recursos/contratar-web-pequeno-negocio?utm_source=github&utm_medium=referral&utm_campaign=storefront_portability_2026_10_03&utm_content=readme_hiring_guide) covers scope, access and handover when choosing a provider.
+
 ## Licence
 
 The original public material is covered by the [Zay End-Product License 1.0](LICENSE). You may use and modify the method to create, deliver and sell finished storefronts. You may not publish, share, sublicense or sell the reusable kit, its adapter, or a derived template or generator without written permission.
 
 The executable WooCommerce adapter is not distributed here because WordPress-dependent PHP carries GPL redistribution rights. See [LICENSING.md](LICENSING.md) for the exact boundary.
+
