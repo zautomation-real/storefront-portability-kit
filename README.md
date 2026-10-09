@@ -148,7 +148,7 @@ docs/                 method and runtime guides
 
 ## Maintainer
 
-We maintain this kit at [Webs del Camp](https://websdelcamp.cat/es?utm_source=github&utm_medium=referral&utm_campaign=storefront_portability_2026_10_03&utm_content=readme_author), a web design, development and automation studio working with small businesses across Spain from Tarragona. Our [Spanish guide to commissioning a website](https://websdelcamp.cat/es/recursos/contratar-web-pequeno-negocio?utm_source=github&utm_medium=referral&utm_campaign=storefront_portability_2026_10_03&utm_content=readme_hiring_guide) covers scope, access and handover when choosing a provider.
+We maintain this kit at [Webs del Camp](https://websdelcamp.cat/es?utm_source=github&utm_medium=referral&utm_campaign=storefront_portability_2026_10_03&utm_content=readme_author), a studio building websites, custom business software and automations for small businesses across Spain from Tarragona. Our [Spanish guide to commissioning a website](https://websdelcamp.cat/es/recursos/contratar-web-pequeno-negocio?utm_source=github&utm_medium=referral&utm_campaign=storefront_portability_2026_10_03&utm_content=readme_hiring_guide) covers scope, access and handover when choosing a provider.
 
 ## Licence
 
